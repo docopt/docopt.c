@@ -75,7 +75,8 @@ TokenStream parse_shorts(TokenStream ts, Element options[]) {
         int i = 0;
         Element *o = &options[i];
         while (o->type != None) {
-            if (o->type == Option && o->option.oshort[1] == raw[0]) {
+            if (o->type == Option && o->option.oshort != NULL
+                                  && o->option.oshort[1] == raw[0]) {
                 break;
             }
             o = &options[++i];
@@ -145,6 +146,29 @@ TokenStream parse_long(TokenStream ts, Element options[]) {
             exit(1);
         }
         o->option.value = true;
+    }
+    return ts;
+}
+
+ /*
+  * parse_args
+  */
+
+TokenStream parse_args(TokenStream ts, Element options[]) {
+    while (ts.current != NULL) {
+        if (strcmp(ts.current, "--") == 0) {
+            // not implemented yet
+            return ts;
+            //return parsed + [Argument(None, v) for v in tokens]
+        } else if (ts.current[0] == '-' && ts.current[1] == '-') {
+            ts = parse_long(ts, options);
+        } else if (ts.current[0] == '-' ) {
+            ts = parse_shorts(ts, options);
+        } else {
+            // not implemented yet
+            ts = TokenStream_move(ts); // just skip for now
+            //parsed.append(Argument(None, tokens.move()))
+        }
     }
     return ts;
 }

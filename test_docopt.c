@@ -158,6 +158,42 @@ void test_parse_long_4(void) {
     assert(strcmp(o.option.argument, "ARG") == 0);
 }
 
+ /*
+  * parse_args
+  */
+
+void test_parse_args_1(void) {
+    Element options[4] = {{Option, {NULL, "--all", false, false, NULL}},
+                          {Option, {"-b", NULL, false, false, NULL}},
+                          {Option, {"-W", NULL, true, false, NULL}},
+                          {None}};
+    char *argv[] = {"--all", "-b", "ARG"};
+    TokenStream ts = TokenStream_create(3, argv);
+    parse_args(ts, options);
+    assert(strcmp(options[0].option.olong, "--all") == 0);
+    assert(options[0].option.value == true);
+    assert(strcmp(options[1].option.oshort, "-b") == 0);
+    assert(options[1].option.value == true);
+    assert(strcmp(options[2].option.oshort, "-W") == 0);
+    assert(options[2].option.argument == NULL);
+}
+
+void test_parse_args_2(void) {
+    Element options[4] = {{Option, {NULL, "--all", false, false, NULL}},
+                          {Option, {"-b", NULL, false, false, NULL}},
+                          {Option, {"-W", NULL, true, false, NULL}},
+                          {None}};
+    char *argv[] = {"ARG", "-Wall"};
+    TokenStream ts = TokenStream_create(2, argv);
+    parse_args(ts, options);
+    assert(strcmp(options[0].option.olong, "--all") == 0);
+    assert(options[0].option.value == false);
+    assert(strcmp(options[1].option.oshort, "-b") == 0);
+    assert(options[1].option.value == false);
+    assert(strcmp(options[2].option.oshort, "-W") == 0);
+    assert(strcmp(options[2].option.argument, "all") == 0);
+}
+
 int main(int argc, char *argv[]) {
 
     test_token_stream();
@@ -172,4 +208,7 @@ int main(int argc, char *argv[]) {
     test_parse_long_2();
     test_parse_long_3();
     test_parse_long_4();
+
+    test_parse_args_1();
+    test_parse_args_2();
 }
