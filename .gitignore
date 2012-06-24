@@ -1,2 +1,4 @@
 *.o
 *.out
+*.py[co]
+*.swp
