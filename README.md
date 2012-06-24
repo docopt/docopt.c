@@ -1,8 +1,8 @@
 C-code generator for docopt language
 ===============================================================================
 
-At this point the code generator handles only options (positional arguments
-and commands will follow).
+Note, *at this point the code generator handles only options*
+(positional arguments, commands and pattern matching will follow).
 
 ### Step 1. Create file in docopt lanugage, describing your CLI
 
