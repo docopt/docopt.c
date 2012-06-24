@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### Step 4. Profit
+### Step 4. Profit!
 
 ```bash
 $ c99 example.c -o example.out
