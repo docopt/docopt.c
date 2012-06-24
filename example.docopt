@@ -1,0 +1,14 @@
+Usage:
+    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]
+    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]
+    the_program -h | --help | --version
+
+Options:
+  -h, --help             Show this screen.
+  --version              Print version and exit.
+  --tcp                  TCP mode.
+  --serial               Serial mode.
+  --host HOST            Target host [default: localhost].
+  -p, --port PORT        Target port [default: 1234].
+  -t, --timeout SECONDS  Timeout time in seconds [default: 10]
+  -b, --baud BAUD        Target port [default: 9600].

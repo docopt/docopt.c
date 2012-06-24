@@ -176,30 +176,87 @@ TokenStream parse_args(TokenStream ts, Element options[]) {
 /* This is how the generated struct may look like */
 typedef struct {
     /* flag options */
-    bool drifting;
     bool help;
-    bool moored;
     bool version;
-    /* options with argument */
-    char *speed;
-    /* positional arguments */
-    char *x;
-    char *y;
-    /* repeating positional arguments */
-    char **name;
-    /* commands */
-    bool mine;
-    bool move;
-    bool new;
-    bool remove;
-    bool set;
-    bool ship;
-    bool shoot;
+    bool tcp;
+    bool serial;
+    /* options with arguments */
+    char *host;
+    char *port;
+    char *timeout;
+    char *baud;
+    /* special */
+    char *usage_pattern;
+    char *help_message;
 } DocoptArgs;
+
+char *help_message =
+"Usage:\n"
+"    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
+"    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
+"    the_program -h | --help | --version\n"
+"\n"
+"Options:\n"
+"  -h, --help             Show this screen.\n"
+"  --version              Print version and exit.\n"
+"  --tcp                  TCP mode.\n"
+"  --serial               Serial mode.\n"
+"  --host HOST            Target host [default: localhost].\n"
+"  -p, --port PORT        Target port [default: 1234].\n"
+"  -t, --timeout SECONDS  Timeout time in seconds [default: 10]\n"
+"  -b, --baud BAUD        Target port [default: 9600].\n";
+
+char *usage_pattern =
+"Usage:\n"
+"    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
+"    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
+"    the_program -h | --help | --version\n";
 
 
 DocoptArgs docopt(int argc, char *argv[], bool help, char *version) {
-    DocoptArgs args = {true, false, true, false, "15", "100", "200",
-                       NULL, true, false, true, false, true, false, true};
+    DocoptArgs args = {false, false, false, false, "localhost", "1234", "10", "9600", usage_pattern, help_message};
+    Element options[] = {
+         {Option, {"-h", "--help", false, false, NULL}},
+         {Option, {NULL, "--version", false, false, NULL}},
+         {Option, {NULL, "--tcp", false, false, NULL}},
+         {Option, {NULL, "--serial", false, false, NULL}},
+         {Option, {NULL, "--host", true, false, NULL}},
+         {Option, {"-p", "--port", true, false, NULL}},
+         {Option, {"-t", "--timeout", true, false, NULL}},
+         {Option, {"-b", "--baud", true, false, NULL}},
+         {None}
+    };
+    TokenStream ts = TokenStream_create(argc, argv);
+    parse_args(ts, options);
+    int i = 0;
+    Element *o = &options[i];
+    while (o->type != None) {
+        if (strcmp(o->option.olong, "--help") == 0) {
+            args.help = o->option.value;
+            if (help && args.help) {
+                printf("%s", args.help_message);
+                exit(0);
+            }
+        } else if (strcmp(o->option.olong, "--version") == 0) {
+            args.version = o->option.value;
+            if (version && args.version) {
+                printf("%s", version);
+                exit(0);
+            }
+        } else if (strcmp(o->option.olong, "--tcp") == 0) {
+            args.tcp = o->option.value;
+        } else if (strcmp(o->option.olong, "--serial") == 0) {
+            args.serial = o->option.value;
+        } else if (o->option.argument && strcmp(o->option.olong, "--host") == 0) {
+            args.host = o->option.argument;
+        } else if (o->option.argument && strcmp(o->option.olong, "--port") == 0) {
+            args.port = o->option.argument;
+        } else if (o->option.argument && strcmp(o->option.olong, "--timeout") == 0) {
+            args.timeout = o->option.argument;
+        } else if (o->option.argument && strcmp(o->option.olong, "--baud") == 0) {
+            args.baud = o->option.argument;
+        }
+        o = &options[++i];
+    }
     return args;
 }
