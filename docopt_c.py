@@ -219,9 +219,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, char *version) {
 
 """
 import sys
-from docopt import (
-        printable_usage, parse_doc_options, parse_pattern, formal_usage,
-)
+import docopt
 
 
 def to_c(s):
@@ -266,11 +264,24 @@ def c_if_not_flag(o):
 
 
 if __name__ == '__main__':
-    help_message=sys.stdin.read()
-    usage_pattern = printable_usage(help_message)
-    options = parse_doc_options(help_message)
-    formal_pattern = parse_pattern(formal_usage(usage_pattern), options=options)
-    formal_pattern.fix()
+    doc = sys.stdin.read()
+    usage_sections = docopt.parse_section('usage:', doc)
+
+    if len(usage_sections) == 0:
+        raise docopt.DocoptLanguageError('"usage:" (case-insensitive) not found.')
+    if len(usage_sections) > 1:
+        raise docopt.DocoptLanguageError('More than one "usage:" (case-insensitive).')
+    usage = usage_sections[0]
+
+    options = docopt.parse_defaults(doc)
+    pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
+
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(options)
+    pp.pprint(pattern)
+    exit()
+
 
     out = __doc__
     out = out.replace('<<<flag_options>>>',
