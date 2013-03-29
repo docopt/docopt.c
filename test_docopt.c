@@ -1,4 +1,4 @@
-#include "../docopt.c"
+#include "docopt.c"
 
 #define assert(x) printf("%c", x ? '.' : 'F')
 
