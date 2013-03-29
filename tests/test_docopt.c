@@ -1,4 +1,4 @@
-#include "./docopt.c"
+#include "../docopt.c"
 
 #define assert(x) printf("%c", x ? '.' : 'F')
 
@@ -211,4 +211,7 @@ int main(int argc, char *argv[]) {
 
     test_parse_args_1();
     test_parse_args_2();
+
+    puts("OK!");
+    exit(0);
 }

@@ -4,7 +4,7 @@ C-code generator for docopt language
 Note, *at this point the code generator handles only options*
 (positional arguments, commands and pattern matching will follow).
 
-### Step 1. Create file in docopt lanugage, describing your CLI
+### Step 1. Create file in docopt language, describing your CLI
 
 `example.docopt`
 
@@ -34,7 +34,7 @@ $ cat example.docopt | python docopt_c.py > docopt.c
 `example.c`
 
 ```c
-#include "./docopt.c"
+#include "docopt.c"
 
 int main(int argc, char *argv[]) {
 

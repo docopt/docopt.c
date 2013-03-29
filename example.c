@@ -1,4 +1,4 @@
-#include "./docopt.c"
+#include "docopt.c"
 
 int main(int argc, char *argv[]) {
 

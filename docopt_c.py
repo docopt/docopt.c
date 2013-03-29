@@ -266,7 +266,7 @@ def c_if_not_flag(o):
 
 
 if __name__ == '__main__':
-    help_message = sys.stdin.read()
+    help_message=sys.stdin.read()
     usage_pattern = printable_usage(help_message)
     options = parse_doc_options(help_message)
     formal_pattern = parse_pattern(formal_usage(usage_pattern), options=options)
