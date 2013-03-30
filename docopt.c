@@ -69,7 +69,6 @@ TokenStream TokenStream_move(TokenStream ts) {
 TokenStream parse_shorts(TokenStream ts, Element options[]) {
     char *raw = &ts.current[1];
     ts = TokenStream_move(ts);
-    Element *parsed = NULL;
     while (raw[0] != '\0') {
         int i = 0;
         Element *o = &options[i];

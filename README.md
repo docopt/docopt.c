@@ -1,12 +1,10 @@
 C-code generator for docopt language
-===============================================================================
+====================================
 
 Note, *at this point the code generator handles only options*
 (positional arguments, commands and pattern matching will follow).
 
-### Step 1. Create file in docopt language, describing your CLI
-
-`example.docopt`
+### Step 1. Describe your CLI in docopt language
 
     Usage:
         the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]
@@ -23,22 +21,20 @@ Note, *at this point the code generator handles only options*
       -t, --timeout SECONDS  Timeout time in seconds [default: 10]
       -b, --baud BAUD        Target port [default: 9600].
 
-### Step 2. Generate code (`docopt.c`) using `docopt_c.py`
+### Step 2. Generate the C code
 
 ```bash
 $ cat example.docopt | python docopt_c.py > docopt.c
 ```
 
-### Step 3. Include `docopt.c` into your program
-
-`example.c`
+### Step 3. Include the generated `docopt.c` into your program
 
 ```c
 #include "docopt.c"
 
-int main(int argc, char *argv[]) {
-
-    DocoptArgs args = docopt(argc, argv, /* help */ 1, "2.0rc2");
+int main(int argc, char *argv[])
+{
+    DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
 
     printf("--help == %s\n", args.help ? "true" : "false");
     printf("--version == %s\n", args.version ? "true" : "false");
@@ -65,3 +61,9 @@ $ ./example.out --tcp --host=127.0.0.1 --baud=4800
 --timeout == 10
 --baud == 4800
 ```
+
+Development
+===========
+
+See the [Python version's page](http://github.com/docopt/docopt) for more
+info on developing.

@@ -69,7 +69,6 @@ TokenStream TokenStream_move(TokenStream ts) {
 TokenStream parse_shorts(TokenStream ts, Element options[]) {
     char *raw = &ts.current[1];
     ts = TokenStream_move(ts);
-    Element *parsed = NULL;
     while (raw[0] != '\0') {
         int i = 0;
         Element *o = &options[i];
@@ -276,13 +275,6 @@ if __name__ == '__main__':
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
 
-    import pprint
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(options)
-    pp.pprint(pattern)
-    exit()
-
-
     out = __doc__
     out = out.replace('<<<flag_options>>>',
                       ';\n    '.join('int %s' % c_name(o.long or o.short)
@@ -290,8 +282,8 @@ if __name__ == '__main__':
     out = out.replace('<<<options_with_arguments>>>',
                       ';\n    '.join('char *%s' % c_name(o.long or o.short)
                                      for o in options if o.argcount == 1))
-    out = out.replace('<<<help_message>>>', to_c(help_message))
-    out = out.replace('<<<usage_pattern>>>', to_c(usage_pattern))
+    out = out.replace('<<<help_message>>>', to_c(doc))
+    out = out.replace('<<<usage_pattern>>>', to_c(usage))
     out = out.replace('<<<defaults>>>',
                       ', '.join(to_c(o.value) for o in
                                 sorted(options, key=lambda o: o.argcount)))
