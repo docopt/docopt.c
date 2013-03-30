@@ -1,7 +1,7 @@
 #include "docopt.c"
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[])
+{
     DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
 
     printf("--help == %s\n", args.help ? "true" : "false");

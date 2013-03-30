@@ -1,7 +1,13 @@
-r"""#include <stdio.h>
+r"""#ifdef __cplusplus
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#else
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#endif
 
 typedef enum {Option, Argument, Command, None} ElementType;
 
