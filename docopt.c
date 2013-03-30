@@ -218,13 +218,8 @@ const char usage_pattern[] =
 "    the_program -h | --help | --version";
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
-    static char host[] = "localhost";
-static char port[] = "1234";
-static char timeout[] = "10";
-static char baud[] = "9600";
-
     DocoptArgs args = {
-        0, 0, 0, 0, host, port, timeout, baud,
+        0, 0, 0, 0, (char*) "localhost", (char*) "1234", (char*) "10", (char*) "9600",
         usage_pattern, help_message
     };
     Element options[] = {
