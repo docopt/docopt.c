@@ -195,8 +195,9 @@ const char usage_pattern[] =
 <<<usage_pattern>>>;
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
+    <<<defaults>>>
     DocoptArgs args = {
-        <<<defaults>>>,
+        <<<defaults_initialization_list>>>,
         usage_pattern, help_message
     };
     Element options[] = {
@@ -268,6 +269,25 @@ def c_if_not_flag(o):
                 c_name(o.long or o.short))
 
 
+def c_default_options_static_strings(opts):
+    t = ''
+    for o in opts:
+        if type(o.value) is str:
+            t += "static char %s[] = %s;\n" % (c_name(o.long), to_c(o.value))
+    return t
+
+
+def c_default_options_initialization_list(opts):
+    t = ''
+    for o in opts:
+        if type(o.value) is str:
+            t += c_name(o.long) + ', '
+        else:
+            t += to_c(o.value) + ', '
+    return t.strip(', ')
+
+
+
 if __name__ == '__main__':
     doc = sys.stdin.read()
     usage_sections = docopt.parse_section('usage:', doc)
@@ -290,9 +310,9 @@ if __name__ == '__main__':
                                      for o in options if o.argcount == 1))
     out = out.replace('<<<help_message>>>', to_c(doc))
     out = out.replace('<<<usage_pattern>>>', to_c(usage))
-    out = out.replace('<<<defaults>>>',
-                      ', '.join(to_c(o.value) for o in
-                                sorted(options, key=lambda o: o.argcount)))
+    out = out.replace('<<<defaults>>>', c_default_options_static_strings(options))
+    out = out.replace('<<<defaults_initialization_list>>>',
+                      c_default_options_initialization_list(options))
     out = out.replace('<<<options>>>',
                       ',\n        '.join(c_option(o) for o in options))
     out = out.replace('<<<if_flag>>>',
