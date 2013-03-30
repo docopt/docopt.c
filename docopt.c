@@ -13,8 +13,8 @@ typedef struct {
      */
     /* union { */
         struct {
-            char *oshort;
-            char *olong;
+            const char *oshort;
+            const char *olong;
             bool argcount;
             bool value;
             char *argument;
@@ -184,11 +184,11 @@ typedef struct {
     char *timeout;
     char *baud;
     /* special */
-    char *usage_pattern;
-    char *help_message;
+    const char *usage_pattern;
+    const char *help_message;
 } DocoptArgs;
 
-char *help_message =
+const char help_message[] =
 "Usage:\n"
 "    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
 "    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
@@ -205,13 +205,13 @@ char *help_message =
 "  -b, --baud BAUD        Target port [default: 9600].\n"
 "";
 
-char *usage_pattern =
+const char usage_pattern[] =
 "Usage:\n"
 "    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
 "    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
 "    the_program -h | --help | --version";
 
-DocoptArgs docopt(int argc, char *argv[], bool help, char *version) {
+DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
         0, 0, 0, 0, "localhost", "1234", "10", "9600",
         usage_pattern, help_message

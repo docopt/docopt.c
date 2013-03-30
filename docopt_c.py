@@ -13,8 +13,8 @@ typedef struct {
      */
     /* union { */
         struct {
-            char *oshort;
-            char *olong;
+            const char *oshort;
+            const char *olong;
             bool argcount;
             bool value;
             char *argument;
@@ -178,17 +178,17 @@ typedef struct {
     /* options with arguments */
     <<<options_with_arguments>>>;
     /* special */
-    char *usage_pattern;
-    char *help_message;
+    const char *usage_pattern;
+    const char *help_message;
 } DocoptArgs;
 
-char *help_message =
+const char help_message[] =
 <<<help_message>>>;
 
-char *usage_pattern =
+const char usage_pattern[] =
 <<<usage_pattern>>>;
 
-DocoptArgs docopt(int argc, char *argv[], bool help, char *version) {
+DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
         <<<defaults>>>,
         usage_pattern, help_message
