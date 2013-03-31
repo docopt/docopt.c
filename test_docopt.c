@@ -6,18 +6,18 @@
   * TokenStream
   */
 
-void test_token_stream(void) {
+void test_tokens(void) {
     char *argv[] = {"prog", "-o", "12"};
-    TokenStream ts = TokenStream_create(3, argv);
+    Tokens ts = tokens_create(3, argv);
     assert(strcmp(ts.current, "prog") == 0);
 
-    ts = TokenStream_move(ts);
+    tokens_move(&ts);
     assert(strcmp(ts.current, "-o") == 0);
 
-    ts = TokenStream_move(ts);
+    tokens_move(&ts);
     assert(strcmp(ts.current, "12") == 0);
 
-    ts = TokenStream_move(ts);
+    tokens_move(&ts);
     assert(ts.current == NULL);
 }
 
@@ -27,9 +27,9 @@ void test_token_stream(void) {
 
 void test_parse_shorts_1(void) {
     char *argv[] = {"-a"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[1] = {{Option, {"-a", NULL, false, false, NULL}}};
-    parse_shorts(ts, options);
+    parse_shorts(&ts, options);
     Element o = options[0];
     assert(strcmp(o.option.oshort, "-a") == 0);
     assert(o.option.olong == NULL);
@@ -40,10 +40,10 @@ void test_parse_shorts_1(void) {
 
 void test_parse_shorts_2(void) {
     char *argv[] = {"-ab"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[2] = {{Option, {"-a", NULL, false, false, NULL}},
                           {Option, {"-b", NULL, false, false, NULL}}};
-    parse_shorts(ts, options);
+    parse_shorts(&ts, options);
     Element o1 = options[0];
     Element o2 = options[1];
     assert(strcmp(o1.option.oshort, "-a") == 0);
@@ -54,10 +54,10 @@ void test_parse_shorts_2(void) {
 
 void test_parse_shorts_3(void) {
     char *argv[] = {"-b"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[2] = {{Option, {"-a", NULL, false, false, NULL}},
                           {Option, {"-b", NULL, false, false, NULL}}};
-    parse_shorts(ts, options);
+    parse_shorts(&ts, options);
     Element o1 = options[0];
     Element o2 = options[1];
     assert(strcmp(o1.option.oshort, "-a") == 0);
@@ -68,9 +68,9 @@ void test_parse_shorts_3(void) {
 
 void test_parse_shorts_4(void) {
     char *argv[] = {"-aARG"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[1] = {{Option, {"-a", NULL, true, false, NULL}}};
-    parse_shorts(ts, options);
+    parse_shorts(&ts, options);
     Element o = options[0];
     assert(strcmp(o.option.oshort, "-a") == 0);
     assert(o.option.value == false);
@@ -79,9 +79,9 @@ void test_parse_shorts_4(void) {
 
 void test_parse_shorts_5(void) {
     char *argv[] = {"-a", "ARG"};
-    TokenStream ts = TokenStream_create(2, argv);
+    Tokens ts = tokens_create(2, argv);
     Element options[1] = {{Option, {"-a", NULL, true, false, NULL}}};
-    ts = parse_shorts(ts, options);
+    parse_shorts(&ts, options);
     assert(ts.current == NULL);
     Element o = options[0];
     assert(strcmp(o.option.oshort, "-a") == 0);
@@ -95,9 +95,9 @@ void test_parse_shorts_5(void) {
 
 void test_parse_long_1(void) {
     char *argv[] = {"--all"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[1] = {{Option, {NULL, "--all", false, false, NULL}}};
-    parse_long(ts, options);
+    parse_long(&ts, options);
     Element o = options[0];
     assert(o.option.oshort == NULL);
     assert(strcmp(o.option.olong, "--all") == 0);
@@ -108,10 +108,10 @@ void test_parse_long_1(void) {
 
 void test_parse_long_2(void) {
     char *argv[] = {"--all"};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[2] = {{Option, {NULL, "--all", false, false, NULL}},
                           {Option, {NULL, "--not", false, false, NULL}}};
-    parse_long(ts, options);
+    parse_long(&ts, options);
     Element o1 = options[0];
     Element o2 = options[1];
 
@@ -131,9 +131,9 @@ void test_parse_long_2(void) {
 void test_parse_long_3(void) {
     char tmp[] = "--all=ARG";
     char *argv[] = {tmp};
-    TokenStream ts = TokenStream_create(1, argv);
+    Tokens ts = tokens_create(1, argv);
     Element options[1] = {{Option, {NULL, "--all", true, false, NULL}}};
-    parse_long(ts, options);
+    parse_long(&ts, options);
     assert(memcmp(tmp, "--all\0ARG", 9) == 0);
     Element o = options[0];
     assert(o.option.oshort == NULL);
@@ -146,9 +146,9 @@ void test_parse_long_3(void) {
 void test_parse_long_4(void) {
     //char tmp[] = "--all ARG";
     char *argv[] = {"--all", "ARG"};
-    TokenStream ts = TokenStream_create(2, argv);
+    Tokens ts = tokens_create(2, argv);
     Element options[1] = {{Option, {NULL, "--all", true, false, NULL}}};
-    parse_long(ts, options);
+    parse_long(&ts, options);
     //assert(memcmp(tmp, "--all\0ARG", 9) == 0);
     Element o = options[0];
     assert(o.option.oshort == NULL);
@@ -168,8 +168,8 @@ void test_parse_args_1(void) {
                           {Option, {"-W", NULL, true, false, NULL}},
                           {None}};
     char *argv[] = {"--all", "-b", "ARG"};
-    TokenStream ts = TokenStream_create(3, argv);
-    parse_args(ts, options);
+    Tokens ts = tokens_create(3, argv);
+    parse_args(&ts, options);
     assert(strcmp(options[0].option.olong, "--all") == 0);
     assert(options[0].option.value == true);
     assert(strcmp(options[1].option.oshort, "-b") == 0);
@@ -184,8 +184,8 @@ void test_parse_args_2(void) {
                           {Option, {"-W", NULL, true, false, NULL}},
                           {None}};
     char *argv[] = {"ARG", "-Wall"};
-    TokenStream ts = TokenStream_create(2, argv);
-    parse_args(ts, options);
+    Tokens ts = tokens_create(2, argv);
+    parse_args(&ts, options);
     assert(strcmp(options[0].option.olong, "--all") == 0);
     assert(options[0].option.value == false);
     assert(strcmp(options[1].option.oshort, "-b") == 0);
@@ -196,7 +196,7 @@ void test_parse_args_2(void) {
 
 int main(int argc, char *argv[]) {
 
-    test_token_stream();
+    test_tokens();
 
     test_parse_shorts_1();
     test_parse_shorts_2();

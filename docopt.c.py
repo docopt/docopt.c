@@ -39,31 +39,31 @@ typedef struct {
 } Element;
 
  /*
-  * TokenStream
+  * Tokens
   */
 
-typedef struct {
+typedef struct Tokens Tokens;
+
+struct Tokens {
+    int i;
     int argc;
     char **argv;
-    int i;
     char *current;
-} TokenStream;
+};
 
-TokenStream TokenStream_create(int argc, char **argv) {
-    TokenStream ts;
-    ts.argc = argc;
-    ts.argv = argv;
-    ts.i = 0;
-    ts.current = argv[ts.i];
+Tokens tokens_create(int argc, char **argv)
+{
+    Tokens ts = { 0, argc, argv, argv[0] };
     return ts;
 }
 
-TokenStream TokenStream_move(TokenStream ts) {
-    if (ts.i < ts.argc) {
-        ts.current = ts.argv[++ts.i];
+Tokens* tokens_move(Tokens *ts)
+{
+    if (ts->i < ts->argc) {
+        ts->current = ts->argv[++ts->i];
     }
-    if (ts.i == ts.argc) {
-        ts.current = NULL;
+    if (ts->i == ts->argc) {
+        ts->current = NULL;
     }
     return ts;
 }
@@ -72,9 +72,9 @@ TokenStream TokenStream_move(TokenStream ts) {
   * parse_shorts
   */
 
-TokenStream parse_shorts(TokenStream ts, Element options[]) {
-    char *raw = &ts.current[1];
-    ts = TokenStream_move(ts);
+Tokens* parse_shorts(Tokens *ts, Element options[]) {
+    char *raw = &ts->current[1];
+    tokens_move(ts);
     while (raw[0] != '\0') {
         int i = 0;
         Element *o = &options[i];
@@ -94,12 +94,12 @@ TokenStream parse_shorts(TokenStream ts, Element options[]) {
             o->option.value = true;
         } else {
             if (raw[0] == '\0') {
-                if (ts.current == NULL) {
+                if (ts->current == NULL) {
                     printf("%s requires argument", o->option.oshort);
                     exit(1);
                 }
-                raw = ts.current;
-                ts = TokenStream_move(ts);
+                raw = ts->current;
+                tokens_move(ts);
             }
             o->option.argument = raw;
             break;
@@ -112,8 +112,8 @@ TokenStream parse_shorts(TokenStream ts, Element options[]) {
   * parse_long
   */
 
-TokenStream parse_long(TokenStream ts, Element options[]) {
-    char *eq = strchr(ts.current, '=');
+Tokens* parse_long(Tokens *ts, Element options[]) {
+    char *eq = strchr(ts->current, '=');
     char *argument = NULL;
     if (eq != NULL) {
         *eq = '\0'; // "--option=value\0" => "--option\0value\0"
@@ -123,24 +123,24 @@ TokenStream parse_long(TokenStream ts, Element options[]) {
     Element *o = &options[i];
     while (o->type != None) {
         if (o->type == Option &&
-                strncmp(ts.current, o->option.olong, strlen(ts.current)) == 0) {
+                strncmp(ts->current, o->option.olong, strlen(ts->current)) == 0) {
             break;
         }
         o = &options[++i];
     }
     if (o->type == None) {  // TODO '%s is not a unique prefix
-        printf("%s is not recognized", ts.current);
+        printf("%s is not recognized", ts->current);
         exit(1);
     }
-    ts = TokenStream_move(ts);
+    tokens_move(ts);
     if (o->option.argcount) {
         if (argument == NULL) {
-            if (ts.current == NULL) {
+            if (ts->current == NULL) {
                 printf("%s requires argument", o->option.olong);
                 exit(1);
             }
-            o->option.argument = ts.current;
-            ts = TokenStream_move(ts);
+            o->option.argument = ts->current;
+            tokens_move(ts);
         } else {
             o->option.argument = argument;
         }
@@ -158,19 +158,19 @@ TokenStream parse_long(TokenStream ts, Element options[]) {
   * parse_args
   */
 
-TokenStream parse_args(TokenStream ts, Element options[]) {
-    while (ts.current != NULL) {
-        if (strcmp(ts.current, "--") == 0) {
+Tokens* parse_args(Tokens *ts, Element options[]) {
+    while (ts->current != NULL) {
+        if (strcmp(ts->current, "--") == 0) {
             // not implemented yet
             return ts;
             //return parsed + [Argument(None, v) for v in tokens]
-        } else if (ts.current[0] == '-' && ts.current[1] == '-') {
-            ts = parse_long(ts, options);
-        } else if (ts.current[0] == '-' ) {
-            ts = parse_shorts(ts, options);
+        } else if (ts->current[0] == '-' && ts->current[1] == '-') {
+            parse_long(ts, options);
+        } else if (ts->current[0] == '-' ) {
+            parse_shorts(ts, options);
         } else {
             // not implemented yet
-            ts = TokenStream_move(ts); // just skip for now
+            tokens_move(ts); // just skip for now
             //parsed.append(Argument(None, tokens.move()))
         }
     }
@@ -203,8 +203,8 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         <<<options>>>,
         {None}
     };
-    TokenStream ts = TokenStream_create(argc, argv);
-    parse_args(ts, options);
+    Tokens ts = tokens_create(argc, argv);
+    parse_args(&ts, options);
     int i = 0;
     Element *o = &options[i];
     while (o->type != None) {
