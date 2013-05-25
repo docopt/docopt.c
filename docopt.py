@@ -47,18 +47,18 @@ class Pattern(object):
         if not hasattr(self, 'children'):
             return self
         uniq = list(set(self.flat())) if uniq is None else uniq
-        for i, c in enumerate(self.children):
-            if not hasattr(c, 'children'):
-                assert c in uniq
-                self.children[i] = uniq[uniq.index(c)]
+        for i, child in enumerate(self.children):
+            if not hasattr(child, 'children'):
+                assert child in uniq
+                self.children[i] = uniq[uniq.index(child)]
             else:
-                c.fix_identities(uniq)
+                child.fix_identities(uniq)
 
     def fix_repeating_arguments(self):
         """Fix elements that should accumulate/increment values."""
-        either = [list(c.children) for c in self.either.children]
+        either = [list(child.children) for child in transform(self).children]
         for case in either:
-            for e in [c for c in case if case.count(c) > 1]:
+            for e in [child for child in case if case.count(child) > 1]:
                 if type(e) is Argument or type(e) is Option and e.argcount:
                     if e.value is None:
                         e.value = []
@@ -68,47 +68,40 @@ class Pattern(object):
                     e.value = 0
         return self
 
-    @property
-    def either(self):
-        """Transform pattern into an equivalent, with only top-level Either."""
-        # Currently the pattern will not be equivalent, but more "narrow",
-        # although good enough to reason about list arguments.
-        ret = []
-        groups = [[self]]
-        while groups:
-            children = groups.pop(0)
-            types = [type(c) for c in children]
-            if Either in types:
-                either = [c for c in children if type(c) is Either][0]
-                children.pop(children.index(either))
-                for c in either.children:
+
+def transform(pattern):
+    """Expand pattern into an (almost) equivalent one, but with single Either.
+
+    Example: ((-a | -b) (-c | -d)) => (-a -c | -a -d | -b -c | -b -d)
+    Quirks: [-a] => (-a), (-a...) => (-a -a)
+
+    """
+    result = []
+    groups = [[pattern]]
+    while groups:
+        children = groups.pop(0)
+        parents = [Required, Optional, OptionsShortcut, Either, OneOrMore]
+        if any(t in map(type, children) for t in parents):
+            child = [c for c in children if type(c) in parents][0]
+            children.remove(child)
+            if type(child) is Either:
+                for c in child.children:
                     groups.append([c] + children)
-            elif Required in types:
-                required = [c for c in children if type(c) is Required][0]
-                children.pop(children.index(required))
-                groups.append(list(required.children) + children)
-            elif Optional in types:
-                optional = [c for c in children if type(c) is Optional][0]
-                children.pop(children.index(optional))
-                groups.append(list(optional.children) + children)
-            elif AnyOptions in types:
-                optional = [c for c in children if type(c) is AnyOptions][0]
-                children.pop(children.index(optional))
-                groups.append(list(optional.children) + children)
-            elif OneOrMore in types:
-                oneormore = [c for c in children if type(c) is OneOrMore][0]
-                children.pop(children.index(oneormore))
-                groups.append(list(oneormore.children) * 2 + children)
+            elif type(child) is OneOrMore:
+                groups.append(child.children * 2 + children)
             else:
-                ret.append(children)
-        return Either(*[Required(*e) for e in ret])
+                groups.append(child.children + children)
+        else:
+            result.append(children)
+    return Either(*[Required(*e) for e in result])
 
 
-class ChildPattern(Pattern):
+class LeafPattern(Pattern):
+
+    """Leaf/terminal node of a pattern tree."""
 
     def __init__(self, name, value=None):
-        self.name = name
-        self.value = value
+        self.name, self.value = name, value
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.value)
@@ -137,7 +130,9 @@ class ChildPattern(Pattern):
         return True, left_, collected + [match]
 
 
-class ParentPattern(Pattern):
+class BranchPattern(Pattern):
+
+    """Branch/inner node of a pattern tree."""
 
     def __init__(self, *children):
         self.children = list(children)
@@ -149,15 +144,15 @@ class ParentPattern(Pattern):
     def flat(self, *types):
         if type(self) in types:
             return [self]
-        return sum([c.flat(*types) for c in self.children], [])
+        return sum([child.flat(*types) for child in self.children], [])
 
 
-class Argument(ChildPattern):
+class Argument(LeafPattern):
 
     def single_match(self, left):
-        for n, p in enumerate(left):
-            if type(p) is Argument:
-                return n, Argument(self.name, p.value)
+        for n, pattern in enumerate(left):
+            if type(pattern) is Argument:
+                return n, Argument(self.name, pattern.value)
         return None, None
 
     @classmethod
@@ -170,20 +165,19 @@ class Argument(ChildPattern):
 class Command(Argument):
 
     def __init__(self, name, value=False):
-        self.name = name
-        self.value = value
+        self.name, self.value = name, value
 
     def single_match(self, left):
-        for n, p in enumerate(left):
-            if type(p) is Argument:
-                if p.value == self.name:
+        for n, pattern in enumerate(left):
+            if type(pattern) is Argument:
+                if pattern.value == self.name:
                     return n, Command(self.name, True)
                 else:
                     break
         return None, None
 
 
-class Option(ChildPattern):
+class Option(LeafPattern):
 
     def __init__(self, short=None, long=None, argcount=0, value=False):
         assert argcount in (0, 1)
@@ -208,9 +202,9 @@ class Option(ChildPattern):
         return class_(short, long, argcount, value)
 
     def single_match(self, left):
-        for n, p in enumerate(left):
-            if self.name == p.name:
-                return n, p
+        for n, pattern in enumerate(left):
+            if self.name == pattern.name:
+                return n, pattern
         return None, None
 
     @property
@@ -222,34 +216,34 @@ class Option(ChildPattern):
                                            self.argcount, self.value)
 
 
-class Required(ParentPattern):
+class Required(BranchPattern):
 
     def match(self, left, collected=None):
         collected = [] if collected is None else collected
         l = left
         c = collected
-        for p in self.children:
-            matched, l, c = p.match(l, c)
+        for pattern in self.children:
+            matched, l, c = pattern.match(l, c)
             if not matched:
                 return False, left, collected
         return True, l, c
 
 
-class Optional(ParentPattern):
+class Optional(BranchPattern):
 
     def match(self, left, collected=None):
         collected = [] if collected is None else collected
-        for p in self.children:
-            m, left, collected = p.match(left, collected)
+        for pattern in self.children:
+            m, left, collected = pattern.match(left, collected)
         return True, left, collected
 
 
-class AnyOptions(Optional):
+class OptionsShortcut(Optional):
 
     """Marker/placeholder for [options] shortcut."""
 
 
-class OneOrMore(ParentPattern):
+class OneOrMore(BranchPattern):
 
     def match(self, left, collected=None):
         assert len(self.children) == 1
@@ -271,13 +265,13 @@ class OneOrMore(ParentPattern):
         return False, left, collected
 
 
-class Either(ParentPattern):
+class Either(BranchPattern):
 
     def match(self, left, collected=None):
         collected = [] if collected is None else collected
         outcomes = []
-        for p in self.children:
-            matched, _, _ = outcome = p.match(left, collected)
+        for pattern in self.children:
+            matched, _, _ = outcome = pattern.match(left, collected)
             if matched:
                 outcomes.append(outcome)
         if outcomes:
@@ -420,7 +414,7 @@ def parse_atom(tokens, options):
         return [result]
     elif token == 'options':
         tokens.move()
-        return [AnyOptions()]
+        return [OptionsShortcut()]
     elif token.startswith('--') and token != '--':
         return parse_long(tokens, options)
     elif token.startswith('-') and token not in ('-', '--'):
@@ -563,10 +557,10 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
         raise DocoptLanguageError('"usage:" (case-insensitive) not found.')
     if len(usage_sections) > 1:
         raise DocoptLanguageError('More than one "usage:" (case-insensitive).')
-    usage = usage_sections[0]
+    DocoptExit.usage = usage_sections[0]
 
     options = parse_defaults(doc)
-    pattern = parse_pattern(formal_usage(usage), options)
+    pattern = parse_pattern(formal_usage(DocoptExit.usage), options)
     # [default] syntax for argument is disabled
     #for a in pattern.flat(Argument):
     #    same_name = [d for d in arguments if d.name == a.name]
@@ -574,11 +568,11 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
     #        a.value = same_name[0].value
     argv = parse_argv(Tokens(argv), list(options), options_first)
     pattern_options = set(pattern.flat(Option))
-    for ao in pattern.flat(AnyOptions):
+    for options_shortcut in pattern.flat(OptionsShortcut):
         doc_options = parse_defaults(doc)
-        ao.children = list(set(doc_options) - pattern_options)
+        options_shortcut.children = list(set(doc_options) - pattern_options)
         #if any_options:
-        #    ao.children += [Option(o.short, o.long, o.argcount)
+        #    options_shortcut.children += [Option(o.short, o.long, o.argcount)
         #                    for o in argv if type(o) is Option]
     extras(help, version, argv, doc)
     matched, left, collected = pattern.fix().match(argv)
