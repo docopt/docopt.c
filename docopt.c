@@ -196,26 +196,26 @@ typedef struct {
 
 const char help_message[] =
 "Usage:\n"
-"    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
-"    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
-"    the_program -h | --help | --version\n"
+"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
+"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
+"  program -h | --help | --version\n"
 "\n"
 "Options:\n"
-"  -h, --help             Show this screen.\n"
-"  --version              Print version and exit.\n"
-"  --tcp                  TCP mode.\n"
-"  --serial               Serial mode.\n"
-"  --host HOST            Target host [default: localhost].\n"
-"  -p, --port PORT        Target port [default: 1234].\n"
-"  -t, --timeout SECONDS  Timeout time in seconds [default: 10]\n"
-"  -b, --baud BAUD        Target port [default: 9600].\n"
+"  -h, --help               Show this screen.\n"
+"  --version                Print version and exit.\n"
+"  --tcp                    TCP mode.\n"
+"  --serial                 Serial mode.\n"
+"  --host=<host>            Target host [default: localhost].\n"
+"  -p, --port=<port>        Target port [default: 1234].\n"
+"  -t, --timeout=<seconds>  Timeout time in seconds [default: 10]\n"
+"  -b, --baud=<baud>        Target port [default: 9600].\n"
 "";
 
 const char usage_pattern[] =
 "Usage:\n"
-"    the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]\n"
-"    the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]\n"
-"    the_program -h | --help | --version";
+"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
+"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
+"  program -h | --help | --version";
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {

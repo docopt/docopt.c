@@ -7,19 +7,19 @@ Note, *at this point the code generator handles only options*
 ### Step 1. Describe your CLI in docopt language
 
     Usage:
-        the_program --tcp [--host=HOST] [--port=PORT] [--timeout=SECONDS]
-        the_program --serial [--port=PORT] [--baud=BAUD] [--timeout=SECONDS]
-        the_program -h | --help | --version
+      program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]
+      program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]
+      program -h | --help | --version
 
     Options:
-      -h, --help             Show this screen.
-      --version              Print version and exit.
-      --tcp                  TCP mode.
-      --serial               Serial mode.
-      --host HOST            Target host [default: localhost].
-      -p, --port PORT        Target port [default: 1234].
-      -t, --timeout SECONDS  Timeout time in seconds [default: 10]
-      -b, --baud BAUD        Target port [default: 9600].
+      -h, --help               Show this screen.
+      --version                Print version and exit.
+      --tcp                    TCP mode.
+      --serial                 Serial mode.
+      --host=<host>            Target host [default: localhost].
+      -p, --port=<port>        Target port [default: 1234].
+      -t, --timeout=<seconds>  Timeout time in seconds [default: 10]
+      -b, --baud=<baud>        Target port [default: 9600].
 
 ### Step 2. Generate the C code
 

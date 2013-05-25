@@ -277,8 +277,7 @@ if __name__ == '__main__':
         raise docopt.DocoptLanguageError('"usage:" (case-insensitive) not found.')
     if len(usage_sections) > 1:
         raise docopt.DocoptLanguageError('More than one "usage:" (case-insensitive).')
-    docopt.DocoptExit.usage = usage_sections[0]
-    usage = docopt.DocoptExit.usage
+    usage = usage_sections[0]
 
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
