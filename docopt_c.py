@@ -1,4 +1,49 @@
-r"""#ifdef __cplusplus
+#!/usr/bin/env python
+#-*- coding:utf-8 -*-
+
+
+# Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+
+"""\
+usage: docopt_c.py [options] [DOCOPT]
+
+Processes a docopt formatted string, from either stdin or a file, and
+outputs the equivalent C code to parse a CLI, to either the stdout or a file.
+
+Options:
+  -o OUTNAME --output-name=OUTNAME
+                Filename used to write the produced C file.
+                If not present, the produced code is printed to stdout.
+  -t TEMPLATE --template=TEMPLATE
+                Filename used to read a TEMPLATE.
+  -h,--help     Show this help message and exit
+
+Arguments:
+  DOCOPT        Input file describing your CLI in docopt language.
+
+"""
+
+
+OUT_C = r"""#ifdef __cplusplus
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -223,6 +268,8 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
 }
 
 """
+
+
 import sys
 import re
 import docopt
@@ -269,8 +316,39 @@ def c_if_not_flag(o):
                 c_name(o.long or o.short))
 
 
+def __parse_cli():
+    arguments = docopt.docopt(__doc__)
+    try:
+        # If no filename is provided in the DOCOPT argument, then its assumed
+        # the docopt string will be read from stdin. This allows the use of
+        # pipes on the command line like it was intended by Vladimir in the
+        # initial implementation of docopt_c.py.
+        if arguments['DOCOPT'] is None:
+            arguments['DOCOPT'] = sys.stdin.read()
+        else:
+            with open(arguments['DOCOPT'], 'r') as f:
+                arguments['DOCOPT'] = f.read()
+        return arguments
+    except ValueError:
+        sys.stderr.write('error: verbosity level must be an integer\n')
+        exit(1)
+    except KeyboardInterrupt:
+        # If no filename is provided in the DOCOPT argument and the user
+        # forgets to pipe in the DOCOPT string, then the program will hang,
+        # waiting for something to be returned from stdin.read(). This
+        # exception handles CTRL+C being press at this stage.
+        sys.stderr.write('\n')
+        exit(1)
+    except IOError as e:
+        sys.stderr.write(str(e) + '\n')
+        exit(1)
+    return arguments
+
+
 if __name__ == '__main__':
-    doc = sys.stdin.read()
+    args = __parse_cli()
+
+    doc = args['DOCOPT']
     usage_sections = docopt.parse_section('usage:', doc)
 
     if len(usage_sections) == 0:
@@ -282,7 +360,7 @@ if __name__ == '__main__':
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
 
-    out = __doc__
+    out = OUT_C if args['--template'] is None else args['--template']
     out = out.replace('<<<flag_options>>>',
                       ';\n    '.join('int %s' % c_name(o.long or o.short)
                                      for o in options if o.argcount == 0))
@@ -291,7 +369,7 @@ if __name__ == '__main__':
                                      for o in options if o.argcount == 1))
     out = out.replace('<<<help_message>>>', to_c(doc))
     out = out.replace('<<<usage_pattern>>>', to_c(usage))
-    
+
     defaults = ', '.join(to_c(o.value) for o in sorted(options, key=lambda o: o.argcount))
     defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', defaults)
     out = out.replace('<<<defaults>>>', defaults)
@@ -302,4 +380,13 @@ if __name__ == '__main__':
             ''.join(c_if_flag(o) for o in options if o.argcount == 0))
     out = out.replace('<<<if_not_flag>>>',
             ''.join(c_if_not_flag(o) for o in options if o.argcount == 1))
-    print(out.strip())
+
+    if args['--output-name'] is None:
+        print(out.strip())
+    else:
+        try:
+            with open(args['--output-name'], 'w') as f:
+                f.write(out.strip())
+        except IOError as e:
+            sys.stderr.write(str(e) + '\n')
+            exit(1)
