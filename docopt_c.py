@@ -311,10 +311,9 @@ def __parse_cli():
         else:
             with open(arguments['DOCOPT'], 'r') as f:
                 arguments['DOCOPT'] = f.read()
-        return arguments
-    except ValueError:
-        sys.stderr.write('error: verbosity level must be an integer\n')
-        exit(1)
+        if arguments['--template'] is not None:
+            with open(arguments['--template'], 'r') as f:
+                arguments['--template'] = f.read()
     except KeyboardInterrupt:
         # If no filename is provided in the DOCOPT argument and the user
         # forgets to pipe in the DOCOPT string, then the program will hang,
