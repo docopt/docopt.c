@@ -7,7 +7,7 @@
 
 
 """\
-usage: docopt_c.py [options] [DOCOPT]
+usage: docopt_c.py [options] [<docopt>]
 
 Processes a docopt formatted string, from either stdin or a file, and
 outputs the equivalent C code to parse a CLI, to either the stdout or a file.
@@ -21,7 +21,7 @@ Options:
   -h,--help     Show this help message and exit
 
 Arguments:
-  DOCOPT        Input file describing your CLI in docopt language.
+  <docopt>      Input file describing your CLI in docopt language.
 
 """
 
