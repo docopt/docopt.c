@@ -302,10 +302,6 @@ def c_if_not_flag(o):
 def __parse_cli():
     arguments = docopt.docopt(__doc__)
     try:
-        # If no filename is provided in the DOCOPT argument, then its assumed
-        # the docopt string will be read from stdin. This allows the use of
-        # pipes on the command line like it was intended by Vladimir in the
-        # initial implementation of docopt_c.py.
         if arguments['DOCOPT'] is None:
             arguments['DOCOPT'] = sys.stdin.read()
         else:
