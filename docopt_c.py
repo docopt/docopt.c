@@ -26,7 +26,7 @@ Arguments:
 """
 
 
-OUT_C = r"""#ifdef __cplusplus
+TEMPLATE_C = r"""#ifdef __cplusplus
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -336,7 +336,7 @@ if __name__ == '__main__':
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
 
-    out = OUT_C if args['--template'] is None else args['--template']
+    out = TEMPLATE_C if args['--template'] is None else args['--template']
     out = out.replace('<<<flag_options>>>',
                       ';\n    '.join('int %s' % c_name(o.long or o.short)
                                      for o in options if o.argcount == 0))
