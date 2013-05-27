@@ -1,9 +1,9 @@
-# Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
-# (see LICENSE-MIT file for copying)
-
-
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
+
+
+# Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
+# (see LICENSE-MIT file for copying)
 
 
 """\
