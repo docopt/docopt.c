@@ -319,11 +319,9 @@ def __parse_cli():
         # forgets to pipe in the DOCOPT string, then the program will hang,
         # waiting for something to be returned from stdin.read(). This
         # exception handles CTRL+C being press at this stage.
-        sys.stderr.write('\n')
-        exit(1)
+        sys.exit('')
     except IOError as e:
-        sys.stderr.write(str(e) + '\n')
-        exit(1)
+        sys.exit(e)
     return arguments
 
 
@@ -370,5 +368,4 @@ if __name__ == '__main__':
             with open(args['--output-name'], 'w') as f:
                 f.write(out.strip())
         except IOError as e:
-            sys.stderr.write(str(e) + '\n')
-            exit(1)
+            sys.exit(str(e))
