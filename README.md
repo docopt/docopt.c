@@ -30,7 +30,7 @@ $ cat example.docopt | python docopt_c.py > docopt.c
 or
 
 ```bash
-python docopt_c.py -o docopt.c example.docopt
+$ python docopt_c.py -o docopt.c example.docopt
 ```
 
 ### Step 3. Include the generated `docopt.c` into your program
