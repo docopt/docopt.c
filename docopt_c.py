@@ -249,7 +249,6 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     }
     return args;
 }
-
 """
 
 
@@ -356,10 +355,10 @@ if __name__ == '__main__':
                     c_if_not_flag(o) for o in options if o.argcount == 1))
 
     if args['--output-name'] is None:
-        print(out.strip())
+        print(out.strip() + '\n')
     else:
         try:
             with open(args['--output-name'], 'w') as f:
-                f.write(out.strip())
+                f.write(out.strip() + '\n')
         except IOError as e:
             sys.exit(str(e))
