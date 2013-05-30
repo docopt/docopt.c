@@ -208,27 +208,27 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
 /* This is how the generated struct may look like */
 typedef struct {
     /* flag options */
-    <<<flag_options>>>;
+    $flag_options;
     /* options with arguments */
-    <<<options_with_arguments>>>;
+    $options_with_arguments;
     /* special */
     const char *usage_pattern;
     const char *help_message;
 } DocoptArgs;
 
 const char help_message[] =
-<<<help_message>>>;
+$help_message;
 
 const char usage_pattern[] =
-<<<usage_pattern>>>;
+$usage_pattern;
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        <<<defaults>>>,
+        $defaults,
         usage_pattern, help_message
     };
     Element options[] = {
-        <<<options>>>,
+        $options,
         {None}
     };
     Tokens ts = tokens_create(argc, argv);
@@ -244,7 +244,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
                            && strcmp(o->option.olong, "--version") == 0) {
             printf("%s", version);
             exit(0);
-        }<<<if_flag>>> <<<if_not_flag>>>
+        }$if_flag $if_not_flag
         o = &options[++i];
     }
     return args;
@@ -256,6 +256,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
 import sys
 import re
 import docopt
+from string import Template
 
 
 def to_c(s):
@@ -302,11 +303,11 @@ def c_if_not_flag(o):
 def __parse_cli():
     arguments = docopt.docopt(__doc__)
     try:
-        if arguments['DOCOPT'] is None:
-            arguments['DOCOPT'] = sys.stdin.read()
+        if arguments['<docopt>'] is None:
+            arguments['<docopt>'] = sys.stdin.read()
         else:
-            with open(arguments['DOCOPT'], 'r') as f:
-                arguments['DOCOPT'] = f.read()
+            with open(arguments['<docopt>'], 'r') as f:
+                arguments['<docopt>'] = f.read()
         if arguments['--template'] is not None:
             with open(arguments['--template'], 'r') as f:
                 arguments['--template'] = f.read()
@@ -324,7 +325,7 @@ def __parse_cli():
 if __name__ == '__main__':
     args = __parse_cli()
 
-    doc = args['DOCOPT']
+    doc = args['<docopt>']
     usage_sections = docopt.parse_section('usage:', doc)
 
     if len(usage_sections) == 0:
@@ -335,27 +336,24 @@ if __name__ == '__main__':
 
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
-
-    out = TEMPLATE_C if args['--template'] is None else args['--template']
-    out = out.replace('<<<flag_options>>>',
-                      ';\n    '.join('int %s' % c_name(o.long or o.short)
-                                     for o in options if o.argcount == 0))
-    out = out.replace('<<<options_with_arguments>>>',
-                      ';\n    '.join('char *%s' % c_name(o.long or o.short)
-                                     for o in options if o.argcount == 1))
-    out = out.replace('<<<help_message>>>', to_c(doc))
-    out = out.replace('<<<usage_pattern>>>', to_c(usage))
-
     defaults = ', '.join(to_c(o.value) for o in sorted(options, key=lambda o: o.argcount))
     defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', defaults)
-    out = out.replace('<<<defaults>>>', defaults)
 
-    out = out.replace('<<<options>>>',
-                      ',\n        '.join(c_option(o) for o in options))
-    out = out.replace('<<<if_flag>>>',
-            ''.join(c_if_flag(o) for o in options if o.argcount == 0))
-    out = out.replace('<<<if_not_flag>>>',
-            ''.join(c_if_not_flag(o) for o in options if o.argcount == 1))
+    out = TEMPLATE_C if args['--template'] is None else args['--template']
+    out = Template(out).safe_substitute(
+            flag_options=';\n    '.join(
+                    'int %s' % c_name(o.long or o.short)
+                    for o in options if o.argcount == 0),
+            options_with_arguments=';\n    '.join(
+                    'char *%s' % c_name(o.long or o.short)
+                    for o in options if o.argcount == 1),
+            help_message=to_c(doc),
+            usage_pattern=to_c(usage),
+            defaults=defaults,
+            options=',\n        '.join(c_option(o) for o in options),
+            if_flag=''.join(c_if_flag(o) for o in options if o.argcount == 0),
+            if_not_flag=''.join(
+                    c_if_not_flag(o) for o in options if o.argcount == 1))
 
     if args['--output-name'] is None:
         print(out.strip())
