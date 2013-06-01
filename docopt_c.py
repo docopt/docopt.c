@@ -6,19 +6,18 @@
 # (see LICENSE-MIT file for copying)
 
 
-"""\
-usage: docopt_c.py [options] [<docopt>]
+"""Usage: docopt_c.py [options] [<docopt>]
 
 Processes a docopt formatted string, from either stdin or a file, and
 outputs the equivalent C code to parse a CLI, to either the stdout or a file.
 
 Options:
-  -o OUTNAME --output-name=OUTNAME
+  -o, --output-name=<outname>
                 Filename used to write the produced C file.
                 If not present, the produced code is printed to stdout.
-  -t TEMPLATE --template=TEMPLATE
-                Filename used to read a TEMPLATE.
-  -h,--help     Show this help message and exit
+  -t, --template=<template>
+                Filename used to read a C template.
+  -h,--help     Show this help message and exit.
 
 Arguments:
   <docopt>      Input file describing your CLI in docopt language.
@@ -299,30 +298,23 @@ def c_if_not_flag(o):
                 c_name(o.long or o.short))
 
 
-def __parse_cli():
-    arguments = docopt.docopt(__doc__)
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__)
+
     try:
-        if arguments['<docopt>'] is None:
-            arguments['<docopt>'] = sys.stdin.read()
+        if args['<docopt>'] is not None:
+            with open(args['<docopt>'], 'r') as f:
+                args['<docopt>'] = f.read()
+        elif args['<docopt>'] is None and sys.stdin.isatty():
+            print(__doc__.strip("\n"))
+            sys.exit("")
         else:
-            with open(arguments['<docopt>'], 'r') as f:
-                arguments['<docopt>'] = f.read()
-        if arguments['--template'] is not None:
-            with open(arguments['--template'], 'r') as f:
-                arguments['--template'] = f.read()
-    except KeyboardInterrupt:
-        # If no filename is provided in the DOCOPT argument and the user
-        # forgets to pipe in the DOCOPT string, then the program will hang,
-        # waiting for something to be returned from stdin.read(). This
-        # exception handles CTRL+C being press at this stage.
-        sys.exit('')
+            args['<docopt>'] = sys.stdin.read()
+        if args['--template'] is not None:
+            with open(args['--template'], 'r') as f:
+                args['--template'] = f.read()
     except IOError as e:
         sys.exit(e)
-    return arguments
-
-
-if __name__ == '__main__':
-    args = __parse_cli()
 
     doc = args['<docopt>']
     usage_sections = docopt.parse_section('usage:', doc)

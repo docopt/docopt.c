@@ -24,13 +24,13 @@ Note, *at this point the code generator handles only options*
 ### Step 2. Generate the C code
 
 ```bash
-$ cat example.docopt | python docopt_c.py > docopt.c
+$ python docopt_c.py -o docopt.c example.docopt
 ```
 
-or
+or by using pipe
 
 ```bash
-$ python docopt_c.py -o docopt.c example.docopt
+$ cat example.docopt | python docopt_c.py > docopt.c
 ```
 
 ### Step 3. Include the generated `docopt.c` into your program
