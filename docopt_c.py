@@ -78,8 +78,11 @@ typedef struct Tokens {
     char *current;
 } Tokens;
 
-Tokens tokens_create(int argc, char **argv) {
-    Tokens ts = {argc, argv, 0, argv[0]};
+Tokens* tokens_new(Tokens *ts, int argc, char **argv) {
+    ts->argc = argc;
+    ts->argv = argv;
+    ts->i = 0;
+    ts->current = argv[0];
     return ts;
 }
 
@@ -223,6 +226,7 @@ $usage_pattern;
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     int i = 0;
+    Tokens ts;
     DocoptArgs args = {
         $defaults,
         usage_pattern, help_message
@@ -232,9 +236,8 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {None}
     };
     Element *o;
-    Tokens ts;
 
-    ts = tokens_create(argc, argv);
+    tokens_new(&ts, argc, argv);
     parse_args(&ts, options);
     o = &options[i];
     while (o->type != None) {
