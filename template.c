@@ -89,7 +89,7 @@ Tokens* parse_shorts(Tokens *ts, Element options[]) {
             o = &options[++i];
         }
         if (o->type == None) {  // TODO -%s is specified ambiguously %d times
-            printf("-%c is not recognized", raw[0]);
+            fprintf(stderr, "-%c is not recognized\n", raw[0]);
             exit(1);
         }
         raw++;
@@ -98,7 +98,8 @@ Tokens* parse_shorts(Tokens *ts, Element options[]) {
         } else {
             if (raw[0] == '\0') {
                 if (ts->current == NULL) {
-                    printf("%s requires argument", o->option.oshort);
+                    fprintf(stderr, "%s requires argument\n",
+                            o->option.oshort);
                     exit(1);
                 }
                 raw = ts->current;
@@ -130,14 +131,14 @@ Tokens* parse_long(Tokens *ts, Element options[]) {
         o = &options[++i];
     }
     if (o->type == None) {  // TODO '%s is not a unique prefix
-        printf("%s is not recognized", ts->current);
+        fprintf(stderr, "%s is not recognized\n", ts->current);
         exit(1);
     }
     tokens_move(ts);
     if (o->option.argcount) {
         if (argument == NULL) {
             if (ts->current == NULL) {
-                printf("%s requires argument", o->option.olong);
+                fprintf(stderr, "%s requires argument\n", o->option.olong);
                 exit(1);
             }
             o->option.argument = ts->current;
@@ -147,7 +148,7 @@ Tokens* parse_long(Tokens *ts, Element options[]) {
         }
     } else {
         if (argument != NULL) {
-            printf("%s must not have an argument", o->option.olong);
+            fprintf(stderr, "%s must not have an argument\n", o->option.olong);
             exit(1);
         }
         o->option.value = true;
@@ -212,7 +213,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
             exit(0);
         } else if (version && o->option.value
                            && strcmp(o->option.olong, "--version") == 0) {
-            printf("%s", version);
+            printf("%s\n", version);
             exit(0);
         }$if_flag$if_not_flag
         o = &options[++i];
