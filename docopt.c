@@ -258,7 +258,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
             args.tcp = o->option.value;
         } else if (strcmp(o->option.olong, "--serial") == 0) {
             args.serial = o->option.value;
-        }  else if (o->option.argument && strcmp(o->option.olong, "--host") == 0) {
+        } else if (o->option.argument && strcmp(o->option.olong, "--host") == 0) {
             args.host = o->option.argument;
         } else if (o->option.argument && strcmp(o->option.olong, "--port") == 0) {
             args.port = o->option.argument;

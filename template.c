@@ -179,11 +179,7 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
  * Main docopt function
  */
 
-typedef struct {
-    /* flag options */
-    $flag_options;
-    /* options with arguments */
-    $options_with_arguments;
+typedef struct {$flag_options$options_with_arguments
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -198,12 +194,10 @@ $usage_pattern;
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     int i = 0;
     Tokens ts;
-    DocoptArgs args = {
-        $defaults,
+    DocoptArgs args = {$defaults
         usage_pattern, help_message
     };
-    Element options[] = {
-        $options,
+    Element options[] = {$options
         {None}
     };
     Element *o;
@@ -220,7 +214,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
                            && strcmp(o->option.olong, "--version") == 0) {
             printf("%s", version);
             exit(0);
-        }$if_flag $if_not_flag
+        }$if_flag$if_not_flag
         o = &options[++i];
     }
     return args;
