@@ -36,6 +36,7 @@ TEMPLATE_C = r"""#ifdef __cplusplus
 #include <string.h>
 #endif
 
+
 typedef enum {Option, Argument, Command, None} ElementType;
 
 typedef struct {
@@ -65,27 +66,25 @@ typedef struct {
     /* } data; */
 } Element;
 
- /*
-  * Tokens
-  */
 
-typedef struct Tokens Tokens;
+/*
+ * Tokens object
+ */
 
-struct Tokens {
-    int i;
+typedef struct Tokens {
     int argc;
     char **argv;
+    int i;
     char *current;
-};
+} Tokens;
 
-Tokens tokens_create(int argc, char **argv)
-{
-    Tokens ts = { 0, argc, argv, argv[0] };
+Tokens* tokens_new(Tokens *ts, int argc, char **argv) {
+    struct Tokens update = {argc, argv, 0, argv[0]};
+    (*ts) = update;
     return ts;
 }
 
-Tokens* tokens_move(Tokens *ts)
-{
+Tokens* tokens_move(Tokens *ts) {
     if (ts->i < ts->argc) {
         ts->current = ts->argv[++ts->i];
     }
@@ -95,16 +94,20 @@ Tokens* tokens_move(Tokens *ts)
     return ts;
 }
 
- /*
-  * parse_shorts
-  */
+
+/*
+ * ARGV parsing functions
+ */
 
 Tokens* parse_shorts(Tokens *ts, Element options[]) {
-    char *raw = &ts->current[1];
+    Element *o;
+    char *raw;
+
+    raw = &ts->current[1];
     tokens_move(ts);
     while (raw[0] != '\0') {
         int i = 0;
-        Element *o = &options[i];
+        o = &options[i];
         while (o->type != None) {
             if (o->type == Option && o->option.oshort != NULL
                                   && o->option.oshort[1] == raw[0]) {
@@ -135,19 +138,17 @@ Tokens* parse_shorts(Tokens *ts, Element options[]) {
     return ts;
 }
 
- /*
-  * parse_long
-  */
-
 Tokens* parse_long(Tokens *ts, Element options[]) {
     char *eq = strchr(ts->current, '=');
     char *argument = NULL;
+    int i = 0;
+    Element *o;
+
     if (eq != NULL) {
         *eq = '\0'; // "--option=value\0" => "--option\0value\0"
         argument = eq + 1;
     }
-    int i = 0;
-    Element *o = &options[i];
+    o = &options[i];
     while (o->type != None) {
         if (o->type == Option &&
                 strncmp(ts->current, o->option.olong, strlen(ts->current)) == 0) {
@@ -181,10 +182,6 @@ Tokens* parse_long(Tokens *ts, Element options[]) {
     return ts;
 }
 
- /*
-  * parse_args
-  */
-
 Tokens* parse_args(Tokens *ts, Element options[]) {
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
@@ -204,7 +201,11 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
     return ts;
 }
 
-/* This is how the generated struct may look like */
+
+/*
+ * Main docopt function
+ */
+
 typedef struct {
     /* flag options */
     $flag_options;
@@ -222,6 +223,8 @@ const char usage_pattern[] =
 $usage_pattern;
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
+    int i = 0;
+    Tokens ts;
     DocoptArgs args = {
         $defaults,
         usage_pattern, help_message
@@ -230,10 +233,11 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         $options,
         {None}
     };
-    Tokens ts = tokens_create(argc, argv);
+    Element *o;
+
+    tokens_new(&ts, argc, argv);
     parse_args(&ts, options);
-    int i = 0;
-    Element *o = &options[i];
+    o = &options[i];
     while (o->type != None) {
         if (help && o->option.value
                  && strcmp(o->option.olong, "--help") == 0) {
