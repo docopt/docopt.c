@@ -104,23 +104,33 @@ if __name__ == '__main__':
 
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
-    defaults = ', '.join(to_c(o.value) for o in sorted(options, key=lambda o: o.argcount))
+
+    flag_options = ';\n    '.join('int %s' % c_name(o.long or o.short)
+                                  for o in options if o.argcount == 0)
+    flag_options = (('\n    /* flag options */\n    ' + flag_options + ';')
+                    if flag_options != '' else '')
+    opts_with_arguments = ';\n    '.join('char *%s' % c_name(o.long or o.short)
+                                         for o in options if o.argcount == 1)
+    opts_with_arguments = (('\n    /* options with arguments */\n    ' +
+                            opts_with_arguments + ';')
+                           if opts_with_arguments != '' else '')
+    defaults = ', '.join(to_c(o.value)
+                         for o in sorted(options, key=lambda o: o.argcount))
     defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', defaults)
+    defaults = ('\n        ' + defaults + ',') if defaults != '' else ''
+    opts = ',\n        '.join(c_option(o) for o in options)
+    opts = ('\n        ' + opts + ',') if opts != '' else ''
 
     out = Template(args['--template']).safe_substitute(
-            flag_options=';\n    '.join(
-                    'int %s' % c_name(o.long or o.short)
-                    for o in options if o.argcount == 0),
-            options_with_arguments=';\n    '.join(
-                    'char *%s' % c_name(o.long or o.short)
-                    for o in options if o.argcount == 1),
+            flag_options=flag_options,
+            options_with_arguments=opts_with_arguments,
             help_message=to_c(doc),
             usage_pattern=to_c(usage),
             defaults=defaults,
-            options=',\n        '.join(c_option(o) for o in options),
+            options=opts,
             if_flag=''.join(c_if_flag(o) for o in options if o.argcount == 0),
-            if_not_flag=''.join(
-                    c_if_not_flag(o) for o in options if o.argcount == 1))
+            if_not_flag=''.join(c_if_not_flag(o)
+                                for o in options if o.argcount == 1))
 
     if args['--output-name'] is None:
         print(out.strip() + '\n')
