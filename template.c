@@ -52,10 +52,8 @@ typedef struct Tokens {
 } Tokens;
 
 Tokens* tokens_new(Tokens *ts, int argc, char **argv) {
-    ts->argc = argc;
-    ts->argv = argv;
-    ts->i = 0;
-    ts->current = argv[0];
+    struct Tokens update = {argc, argv, 0, argv[0]};
+    (*ts) = update;
     return ts;
 }
 

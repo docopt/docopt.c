@@ -12,4 +12,5 @@ int main(int argc, char *argv[])
     printf("--port == %s\n", args.port);
     printf("--timeout == %s\n", args.timeout);
     printf("--baud == %s\n", args.baud);
+    return 0;
 }
