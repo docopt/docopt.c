@@ -181,59 +181,29 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
 
 typedef struct {
     /* flag options */
-    int help;
-    int version;
-    int tcp;
-    int serial;
+    $flag_options;
     /* options with arguments */
-    char *host;
-    char *port;
-    char *timeout;
-    char *baud;
+    $options_with_arguments;
     /* special */
     const char *usage_pattern;
     const char *help_message;
 } DocoptArgs;
 
 const char help_message[] =
-"Usage:\n"
-"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
-"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
-"  program -h | --help | --version\n"
-"\n"
-"Options:\n"
-"  -h, --help               Show this screen.\n"
-"  --version                Print version and exit.\n"
-"  --tcp                    TCP mode.\n"
-"  --serial                 Serial mode.\n"
-"  --host=<host>            Target host [default: localhost].\n"
-"  -p, --port=<port>        Target port [default: 1234].\n"
-"  -t, --timeout=<seconds>  Timeout time in seconds [default: 10]\n"
-"  -b, --baud=<baud>        Target port [default: 9600].\n"
-"";
+$help_message;
 
 const char usage_pattern[] =
-"Usage:\n"
-"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
-"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
-"  program -h | --help | --version";
+$usage_pattern;
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     int i = 0;
     Tokens ts;
     DocoptArgs args = {
-        0, 0, 0, 0, (char*) "localhost", (char*) "1234", (char*) "10", (char*) "9600",
+        $defaults,
         usage_pattern, help_message
     };
     Element options[] = {
-        {Option, {"-h", "--help", 0, 0, NULL}},
-        {Option, {NULL, "--version", 0, 0, NULL}},
-        {Option, {NULL, "--tcp", 0, 0, NULL}},
-        {Option, {NULL, "--serial", 0, 0, NULL}},
-        {Option, {NULL, "--host", 1, 0, NULL}},
-        {Option, {"-p", "--port", 1, 0, NULL}},
-        {Option, {"-t", "--timeout", 1, 0, NULL}},
-        {Option, {"-b", "--baud", 1, 0, NULL}},
+        $options,
         {None}
     };
     Element *o;
@@ -250,23 +220,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
                            && strcmp(o->option.olong, "--version") == 0) {
             printf("%s", version);
             exit(0);
-        } else if (strcmp(o->option.olong, "--help") == 0) {
-            args.help = o->option.value;
-        } else if (strcmp(o->option.olong, "--version") == 0) {
-            args.version = o->option.value;
-        } else if (strcmp(o->option.olong, "--tcp") == 0) {
-            args.tcp = o->option.value;
-        } else if (strcmp(o->option.olong, "--serial") == 0) {
-            args.serial = o->option.value;
-        }  else if (o->option.argument && strcmp(o->option.olong, "--host") == 0) {
-            args.host = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--port") == 0) {
-            args.port = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--timeout") == 0) {
-            args.timeout = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--baud") == 0) {
-            args.baud = o->option.argument;
-        }
+        }$if_flag $if_not_flag
         o = &options[++i];
     }
     return args;
