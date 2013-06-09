@@ -10,33 +10,26 @@
 #endif
 
 
-typedef enum {Option, Argument, Command, None} ElementType;
+typedef enum {Command, Argument, Option, None} ElementType;
 
 typedef struct {
     ElementType type;
-    /*
-     * Should probably be union for storage efficiency, but during development
-     * it's easier to work without it.
-     */
-    /* union { */
-        struct {
-            const char *oshort;
-            const char *olong;
-            bool argcount;
-            bool value;
-            char *argument;
-        } option;
-        struct {
-            char *name;
-            bool repeating;
-            char *value;
-            char **array;
-        } argument;
-        struct {
-            char *name;
-            bool value;
-        } command;
-    /* } data; */
+    struct {
+        char *name;
+        bool value;
+    } command;
+    struct {
+        char *name;
+        char *value;
+        char **array;
+    } argument;
+    struct {
+        char *oshort;
+        char *olong;
+        bool argcount;
+        bool value;
+        char *argument;
+    } option;
 } Element;
 
 
@@ -181,92 +174,144 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
  */
 
 typedef struct {
-    /* flag options */
+    /* commands */
+    int create;
+    int mine;
+    int move;
+    int remove;
+    int set;
+    int ship;
+    int shoot;
+    /* arguments */
+    char *name;
+    char *x;
+    char *y;
+    /* options without arguments */
+    int drifting;
     int help;
+    int moored;
     int version;
-    int tcp;
-    int serial;
     /* options with arguments */
-    char *host;
-    char *port;
-    char *timeout;
-    char *baud;
+    char *speed;
     /* special */
     const char *usage_pattern;
     const char *help_message;
 } DocoptArgs;
 
 const char help_message[] =
+"Naval Fate.\n"
+"\n"
 "Usage:\n"
-"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
-"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
-"  program -h | --help | --version\n"
+"  naval_fate.py ship create <name>...\n"
+"  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]\n"
+"  naval_fate.py ship shoot <x> <y>\n"
+"  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]\n"
+"  naval_fate.py --help\n"
+"  naval_fate.py --version\n"
 "\n"
 "Options:\n"
-"  -h, --help               Show this screen.\n"
-"  --version                Print version and exit.\n"
-"  --tcp                    TCP mode.\n"
-"  --serial                 Serial mode.\n"
-"  --host=<host>            Target host [default: localhost].\n"
-"  -p, --port=<port>        Target port [default: 1234].\n"
-"  -t, --timeout=<seconds>  Timeout time in seconds [default: 10]\n"
-"  -b, --baud=<baud>        Target port [default: 9600].\n"
+"  -h --help     Show this screen.\n"
+"  --version     Show version.\n"
+"  --speed=<kn>  Speed in knots [default: 10].\n"
+"  --moored      Moored (anchored) mine.\n"
+"  --drifting    Drifting mine.\n"
+"\n"
 "";
 
 const char usage_pattern[] =
 "Usage:\n"
-"  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]\n"
-"  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]\n"
-"  program -h | --help | --version";
+"  naval_fate.py ship create <name>...\n"
+"  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]\n"
+"  naval_fate.py ship shoot <x> <y>\n"
+"  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]\n"
+"  naval_fate.py --help\n"
+"  naval_fate.py --version";
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     int i = 0;
     Tokens ts;
     DocoptArgs args = {
-        0, 0, 0, 0, (char*) "localhost", (char*) "1234", (char*) "10", (char*) "9600",
+        0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
         usage_pattern, help_message
     };
     Element options[] = {
-        {Option, {"-h", "--help", 0, 0, NULL}},
-        {Option, {NULL, "--version", 0, 0, NULL}},
-        {Option, {NULL, "--tcp", 0, 0, NULL}},
-        {Option, {NULL, "--serial", 0, 0, NULL}},
-        {Option, {NULL, "--host", 1, 0, NULL}},
-        {Option, {"-p", "--port", 1, 0, NULL}},
-        {Option, {"-t", "--timeout", 1, 0, NULL}},
-        {Option, {"-b", "--baud", 1, 0, NULL}},
+        {Command, {"create", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"mine", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"move", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"remove", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"set", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"ship", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Command, {"shoot", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Argument, {NULL, false}, {"<name>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Argument, {NULL, false}, {"<x>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Argument, {NULL, false}, {"<y>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
+        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--drifting", 0, 0, NULL}},
+        {Option, {NULL, false}, {NULL, NULL, NULL}, {"-h", "--help", 0, 0, NULL}},
+        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--moored", 0, 0, NULL}},
+        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--version", 0, 0, NULL}},
+        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--speed", 1, 0, NULL}},
         {None}
     };
     Element *o;
 
     tokens_new(&ts, argc, argv);
     parse_args(&ts, options);
+
     o = &options[i];
     while (o->type != None) {
-        if (help && o->option.value
+        if (o->type == Option && help && o->option.value
                  && strcmp(o->option.olong, "--help") == 0) {
             printf("%s", args.help_message);
             exit(0);
-        } else if (version && o->option.value
+        } else if (o->type == Option && version && o->option.value
                            && strcmp(o->option.olong, "--version") == 0) {
             printf("%s\n", version);
             exit(0);
-        } else if (strcmp(o->option.olong, "--help") == 0) {
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "create") == 0) {
+            args.create = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "mine") == 0) {
+            args.mine = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "move") == 0) {
+            args.move = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "remove") == 0) {
+            args.remove = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "set") == 0) {
+            args.set = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "ship") == 0) {
+            args.ship = o->command.value;
+        } else if (o->type == Command &&
+                   strcmp(o->command.name, "shoot") == 0) {
+            args.shoot = o->command.value;
+        } else if (o->type == Argument &&
+                   strcmp(o->argument.name, "<name>") == 0) {
+            args.name = o->argument.value;
+        } else if (o->type == Argument &&
+                   strcmp(o->argument.name, "<x>") == 0) {
+            args.x = o->argument.value;
+        } else if (o->type == Argument &&
+                   strcmp(o->argument.name, "<y>") == 0) {
+            args.y = o->argument.value;
+        } else if (o->type == Option &&
+                   strcmp(o->option.olong, "--drifting") == 0) {
+            args.drifting = o->option.value;
+        } else if (o->type == Option &&
+                   strcmp(o->option.olong, "--help") == 0) {
             args.help = o->option.value;
-        } else if (strcmp(o->option.olong, "--version") == 0) {
+        } else if (o->type == Option &&
+                   strcmp(o->option.olong, "--moored") == 0) {
+            args.moored = o->option.value;
+        } else if (o->type == Option &&
+                   strcmp(o->option.olong, "--version") == 0) {
             args.version = o->option.value;
-        } else if (strcmp(o->option.olong, "--tcp") == 0) {
-            args.tcp = o->option.value;
-        } else if (strcmp(o->option.olong, "--serial") == 0) {
-            args.serial = o->option.value;
-        } else if (o->option.argument && strcmp(o->option.olong, "--host") == 0) {
-            args.host = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--port") == 0) {
-            args.port = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--timeout") == 0) {
-            args.timeout = o->option.argument;
-        } else if (o->option.argument && strcmp(o->option.olong, "--baud") == 0) {
-            args.baud = o->option.argument;
+        } else if (o->option.argument &&
+                   strcmp(o->option.olong, "--speed") == 0) {
+            args.speed = o->option.argument;
         }
         o = &options[++i];
     }

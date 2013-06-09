@@ -1,14 +1,17 @@
+Naval Fate.
+
 Usage:
-  program --tcp [--host=<host>] [--port=<port>] [--timeout=<seconds>]
-  program --serial [--port=<port>] [--baud=<baud>] [--timeout=<seconds>]
-  program -h | --help | --version
+  naval_fate.py ship create <name>...
+  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]
+  naval_fate.py ship shoot <x> <y>
+  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]
+  naval_fate.py --help
+  naval_fate.py --version
 
 Options:
-  -h, --help               Show this screen.
-  --version                Print version and exit.
-  --tcp                    TCP mode.
-  --serial                 Serial mode.
-  --host=<host>            Target host [default: localhost].
-  -p, --port=<port>        Target port [default: 1234].
-  -t, --timeout=<seconds>  Timeout time in seconds [default: 10]
-  -b, --baud=<baud>        Target port [default: 9600].
+  -h --help     Show this screen.
+  --version     Show version.
+  --speed=<kn>  Speed in knots [default: 10].
+  --moored      Moored (anchored) mine.
+  --drifting    Drifting mine.
+
