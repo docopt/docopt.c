@@ -10,33 +10,26 @@
 #endif
 
 
-typedef enum {Option, Argument, Command, None} ElementType;
+typedef enum {Command, Argument, Option, None} ElementType;
 
 typedef struct {
     ElementType type;
-    /*
-     * Should probably be union for storage efficiency, but during development
-     * it's easier to work without it.
-     */
-    /* union { */
-        struct {
-            const char *oshort;
-            const char *olong;
-            bool argcount;
-            bool value;
-            char *argument;
-        } option;
-        struct {
-            char *name;
-            bool repeating;
-            char *value;
-            char **array;
-        } argument;
-        struct {
-            char *name;
-            bool value;
-        } command;
-    /* } data; */
+    struct {
+        char *name;
+        bool value;
+    } command;
+    struct {
+        char *name;
+        char *value;
+        char **array;
+    } argument;
+    struct {
+        char *oshort;
+        char *olong;
+        bool argcount;
+        bool value;
+        char *argument;
+    } option;
 } Element;
 
 
@@ -180,7 +173,7 @@ Tokens* parse_args(Tokens *ts, Element options[]) {
  * Main docopt function
  */
 
-typedef struct {$flag_options$options_with_arguments
+typedef struct {$commands$arguments$flags$options
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -198,24 +191,25 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {$defaults
         usage_pattern, help_message
     };
-    Element options[] = {$options
+    Element options[] = {$elements
         {None}
     };
     Element *o;
 
     tokens_new(&ts, argc, argv);
     parse_args(&ts, options);
+
     o = &options[i];
     while (o->type != None) {
-        if (help && o->option.value
+        if (o->type == Option && help && o->option.value
                  && strcmp(o->option.olong, "--help") == 0) {
             printf("%s", args.help_message);
             exit(0);
-        } else if (version && o->option.value
+        } else if (o->type == Option && version && o->option.value
                            && strcmp(o->option.olong, "--version") == 0) {
             printf("%s\n", version);
             exit(0);
-        }$if_flag$if_not_flag
+        }$if_command$if_argument$if_flag$if_option
         o = &options[++i];
     }
     return args;
