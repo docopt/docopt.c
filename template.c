@@ -15,17 +15,17 @@ typedef enum {Command, Argument, Option, None} ElementType;
 typedef struct {
     ElementType type;
     struct {
-        char *name;
+        const char *name;
         bool value;
     } command;
     struct {
-        char *name;
+        const char *name;
         char *value;
         char **array;
     } argument;
     struct {
-        char *oshort;
-        char *olong;
+        const char *oshort;
+        const char *olong;
         bool argcount;
         bool value;
         char *argument;
