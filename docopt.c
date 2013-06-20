@@ -10,27 +10,33 @@
 #endif
 
 
-typedef enum {Command, Argument, Option, None} ElementType;
+typedef struct {
+    const char *name;
+    bool value;
+} COMMAND;
+
 
 typedef struct {
-    ElementType type;
-    struct {
-        const char *name;
-        bool value;
-    } command;
-    struct {
-        const char *name;
-        char *value;
-        char **array;
-    } argument;
-    struct {
-        const char *oshort;
-        const char *olong;
-        bool argcount;
-        bool value;
-        char *argument;
-    } option;
-} Element;
+    const char *name;
+    char *value;
+    char **array;
+} ARGUMENT;
+
+
+typedef struct {
+    const char *oshort;
+    const char *olong;
+    bool argcount;
+    bool value;
+    char *argument;
+} OPTION;
+
+
+typedef struct {
+    COMMAND *commands;
+    ARGUMENT *arguments;
+    OPTION *options;
+} ELEMENTS;
 
 
 /*
@@ -149,7 +155,7 @@ Tokens* parse_long(Tokens *ts, Element options[]) {
     return ts;
 }
 
-Tokens* parse_args(Tokens *ts, Element options[]) {
+Tokens* parse_args(Tokens *ts, ELEMENTS elements) {
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
             // not implemented yet
@@ -234,25 +240,26 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
         usage_pattern, help_message
     };
-    Element options[] = {
-        {Command, {"create", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"mine", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"move", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"remove", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"set", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"ship", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"shoot", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<name>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<x>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<y>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--drifting", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {"-h", "--help", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--moored", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--version", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--speed", 1, 0, NULL}},
-        {None}
+    ELEMENTS elements = {
+        /* commands */
+        {{"create", 0},
+         {"mine", 0},
+         {"move", 0},
+         {"remove", 0},
+         {"set", 0},
+         {"ship", 0},
+         {"shoot", 0}},
+        /* arguments */
+        {{"<name>", NULL, NULL},
+         {"<x>", NULL, NULL},
+         {"<y>", NULL, NULL}},
+        /* options */
+        {{NULL, "--drifting", 0, 0, NULL},
+         {"-h", "--help", 0, 0, NULL},
+         {NULL, "--moored", 0, 0, NULL},
+         {NULL, "--version", 0, 0, NULL},
+         {NULL, "--speed", 1, 0, NULL}}
     };
-    Element *o;
 
     tokens_new(&ts, argc, argv);
     parse_args(&ts, options);
@@ -317,4 +324,3 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     }
     return args;
 }
-

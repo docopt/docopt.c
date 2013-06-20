@@ -10,26 +10,32 @@
 #endif
 
 
-typedef enum {Command, Argument, Option, None} ElementType;
+typedef struct {
+    const char *name;
+    bool value;
+} COMMAND;
+
 
 typedef struct {
-    ElementType type;
-    struct {
-        const char *name;
-        bool value;
-    } command;
-    struct {
-        const char *name;
-        char *value;
-        char **array;
-    } argument;
-    struct {
-        const char *oshort;
-        const char *olong;
-        bool argcount;
-        bool value;
-        char *argument;
-    } option;
+    const char *name;
+    char *value;
+    char **array;
+} ARGUMENT;
+
+
+typedef struct {
+    const char *oshort;
+    const char *olong;
+    bool argcount;
+    bool value;
+    char *argument;
+} OPTION;
+
+
+typedef struct {
+    COMMAND *commands;
+    ARGUMENT *arguments;
+    OPTION *options;
 } Element;
 
 
@@ -191,8 +197,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {$defaults
         usage_pattern, help_message
     };
-    Element options[] = {$elements
-        {None}
+    Element elements = {$elements
     };
     Element *o;
 

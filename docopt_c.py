@@ -49,18 +49,16 @@ def to_c(s):
 
 
 def c_command(o):
-    return '{Command, {%s}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}}' % ', '.join(to_c(v) for v in
-             (o.name, o.value))
+    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value))
 
 
 def c_argument(o):
-    return '{Argument, {NULL, false}, {%s}, {NULL, NULL, false, false, NULL}}' % ', '.join(to_c(v) for v in
-             (o.name, o.value, None))
+    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value, None))
 
 
 def c_option(o):
-    return '{Option, {NULL, false}, {NULL, NULL, NULL}, {%s}}' % ', '.join(to_c(v) for v in
-             (o.short, o.long, o.argcount, False, None))
+    return '{%s}' % ', '.join(to_c(v) for v in (o.short, o.long, o.argcount,
+                                                False, None))
 
 
 def c_name(s):
@@ -174,10 +172,19 @@ if __name__ == '__main__':
     t_defaults = ', '.join(to_c(leaf.value) for leaf in leafs)
     t_defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', t_defaults)
     t_defaults = ('\n        ' + t_defaults + ',') if t_defaults != '' else ''
-    t_elements = ',\n        '.join([c_command(cmd) for cmd in (commands)] +
-                                    [c_argument(arg) for arg in (arguments)] +
-                                    [c_option(o) for o in (flags+options)])
-    t_elements = ('\n        ' + t_elements + ',') if t_elements != '' else ''
+
+    t_elements = ',\n        '.join([
+            '/* commands */\n        {%s}' % ',\n         '.join([c_command(cmd) for cmd in (commands)]),
+            '/* arguments */\n        {%s}' % ',\n         '.join([c_argument(arg) for arg in (arguments)]),
+            '/* options */\n        {%s}' % ',\n         '.join([c_option(o) for o in (flags+options)])])
+    t_elements = ('\n        ' + t_elements) if t_elements != '' else ''
+
+    # t_elements = ',\n        '.join([c_command(cmd) for cmd in (commands)] +
+    #                                 [c_argument(arg) for arg in (arguments)] +
+    #                                 [c_option(o) for o in (flags+options)])
+    # t_elements = ('\n        ' + t_elements + ',') if t_elements != '' else ''
+
+
     t_if_command = ''.join(c_if_command(command) for command in commands)
     t_if_argument = ''.join(c_if_argument(arg) for arg in arguments)
     t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
