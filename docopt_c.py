@@ -30,6 +30,7 @@ import os.path
 import re
 import docopt
 from string import Template
+import textwrap
 
 
 def to_c(s):
@@ -66,32 +67,32 @@ def c_name(s):
 
 
 def c_if_command(cmd):
-    t = """ else if (o->type == Command &&
-                   strcmp(o->command.name, %s) == 0) {
-            args.%s = o->command.value;\n        }"""
+    t = """if (!strcmp(command->name, %s)) {
+            args->%s = command->value;
+        }"""
     return t % (to_c(cmd.name), c_name(cmd.name))
 
 
 def c_if_argument(arg):
-    t = """ else if (o->type == Argument &&
-                   strcmp(o->argument.name, %s) == 0) {
-            args.%s = o->argument.value;\n        }"""
+    t = """if (!strcmp(argument->name, %s)) {
+            args->%s = argument->value;
+        }"""
     return t % (to_c(arg.name), c_name(arg.name))
 
 
 def c_if_flag(o):
-    t = """ else if (o->type == Option &&
-                   strcmp(o->option.o%s, %s) == 0) {
-            args.%s = o->option.value;\n        }"""
+    t = """ else if (!strcmp(option->o%s, %s)) {
+            args->%s = option->value;
+        }"""
     return t % (('long' if o.long else 'short'),
                 to_c(o.long or o.short),
                 c_name(o.long or o.short))
 
 
 def c_if_option(o):
-    t = """ else if (o->option.argument &&
-                   strcmp(o->option.o%s, %s) == 0) {
-            args.%s = o->option.argument;\n        }"""
+    t = """ else if (!strcmp(option->o%s, %s)) {
+            args->%s = option->argument;
+        }"""
     return t % (('long' if o.long else 'short'),
                 to_c(o.long or o.short),
                 c_name(o.long or o.short))
@@ -144,9 +145,11 @@ if __name__ == '__main__':
     usage_sections = docopt.parse_section('usage:', doc)
 
     if len(usage_sections) == 0:
-        raise docopt.DocoptLanguageError('"usage:" (case-insensitive) not found.')
+        raise docopt.DocoptLanguageError(
+                '"usage:" (case-insensitive) not found.')
     if len(usage_sections) > 1:
-        raise docopt.DocoptLanguageError('More than one "usage:" (case-insensitive).')
+        raise docopt.DocoptLanguageError(
+                'More than one "usage:" (case-insensitive).')
     usage = usage_sections[0]
 
     options = docopt.parse_defaults(doc)
@@ -171,22 +174,22 @@ if __name__ == '__main__':
                  if t_options != '' else '')
     t_defaults = ', '.join(to_c(leaf.value) for leaf in leafs)
     t_defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', t_defaults)
+    t_defaults = '\n        '.join(textwrap.wrap(t_defaults, 72))
     t_defaults = ('\n        ' + t_defaults + ',') if t_defaults != '' else ''
+    t_elems_cmds = ',\n        '.join([c_command(cmd) for cmd in (commands)])
+    t_elems_cmds = ('\n        ' + t_elems_cmds) if t_elems_cmds != '' else ''
+    t_elems_args = ',\n        '.join([c_argument(arg) for arg in (arguments)])
+    t_elems_args = ('\n        ' + t_elems_args) if t_elems_args != '' else ''
+    t_elems_opts = ',\n        '.join([c_option(o) for o in (flags+options)])
+    t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
+    t_elems_n = ', '.join([str(len(lst))
+                           for lst in [commands, arguments, (flags+options)]])
 
-    t_elements = ',\n        '.join([
-            '/* commands */\n        {%s}' % ',\n         '.join([c_command(cmd) for cmd in (commands)]),
-            '/* arguments */\n        {%s}' % ',\n         '.join([c_argument(arg) for arg in (arguments)]),
-            '/* options */\n        {%s}' % ',\n         '.join([c_option(o) for o in (flags+options)])])
-    t_elements = ('\n        ' + t_elements) if t_elements != '' else ''
-
-    # t_elements = ',\n        '.join([c_command(cmd) for cmd in (commands)] +
-    #                                 [c_argument(arg) for arg in (arguments)] +
-    #                                 [c_option(o) for o in (flags+options)])
-    # t_elements = ('\n        ' + t_elements + ',') if t_elements != '' else ''
-
-
-    t_if_command = ''.join(c_if_command(command) for command in commands)
-    t_if_argument = ''.join(c_if_argument(arg) for arg in arguments)
+    t_if_command = ' else '.join(c_if_command(command) for command in commands)
+    t_if_command = ('\n        ' + t_if_command) if t_if_command != '' else ''
+    t_if_argument = ' else '.join(c_if_argument(arg) for arg in arguments)
+    t_if_argument = (('\n        ' + t_if_argument)
+                     if t_if_argument != '' else '')
     t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
     t_if_option = ''.join(c_if_option(opt) for opt in options)
 
@@ -197,12 +200,15 @@ if __name__ == '__main__':
             options=t_options,
             help_message=to_c(doc),
             usage_pattern=to_c(usage),
-            defaults=t_defaults,
-            elements=t_elements,
+            if_flag=t_if_flag,
+            if_option=t_if_option,
             if_command=t_if_command,
             if_argument=t_if_argument,
-            if_flag=t_if_flag,
-            if_option=t_if_option)
+            defaults=t_defaults,
+            elems_cmds=t_elems_cmds,
+            elems_args=t_elems_args,
+            elems_opts=t_elems_opts,
+            elems_n=t_elems_n)
 
     if args['--output-name'] is None:
         print(out.strip() + '\n')
