@@ -62,9 +62,8 @@ typedef struct Tokens {
     char *current;
 } Tokens;
 
-Tokens* tokens_new(Tokens *ts, int argc, char **argv) {
-    struct Tokens update = {argc, argv, 0, argv[0]};
-    (*ts) = update;
+Tokens tokens_new(int argc, char **argv) {
+    Tokens ts = {argc, argv, 0, argv[0]};
     return ts;
 }
 
@@ -250,7 +249,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     };
     Elements elements = {$elems_n, commands, arguments, options};
 
-    tokens_new(&ts, argc, argv);
+    ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
         exit(EXIT_FAILURE);
     if (elems_to_args(&elements, &args, help, version))
