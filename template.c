@@ -92,18 +92,14 @@ int parse_doubledash(Tokens *ts,
 
 int parse_long(Tokens *ts, int n_options, Option *options) {
     char *eq = strchr(ts->current, '=');
-    char *argument = NULL;
     int i;
+    int len_prefix;
     Option *option;
 
-    if (eq != NULL) {
-        // "--option=value\0" => "--option\0value\0"
-        *eq = '\0';
-        argument = eq + 1;
-    }
+    len_prefix = (eq-(ts->current))/sizeof(char);
     for (i=0; i < n_options; i++) {
         option = &options[i];
-        if (!strncmp(ts->current, option->olong, strlen(ts->current)))
+        if (!strncmp(ts->current, option->olong, len_prefix))
             break;
     }
     if (i == n_options) {
@@ -113,7 +109,7 @@ int parse_long(Tokens *ts, int n_options, Option *options) {
     }
     tokens_move(ts);
     if (option->argcount) {
-        if (argument == NULL) {
+        if (eq == NULL) {
             if (ts->current == NULL) {
                 fprintf(stderr, "%s requires argument\n", option->olong);
                 return 1;
@@ -121,10 +117,10 @@ int parse_long(Tokens *ts, int n_options, Option *options) {
             option->argument = ts->current;
             tokens_move(ts);
         } else {
-            option->argument = argument;
+            option->argument = eq + 1;
         }
     } else {
-        if (argument != NULL) {
+        if (eq != NULL) {
             fprintf(stderr, "%s must not have an argument\n", option->olong);
             return 1;
         }
