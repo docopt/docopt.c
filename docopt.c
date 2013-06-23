@@ -125,44 +125,15 @@ Tokens* tokens_move(Tokens *ts) {
  * ARGV parsing functions
  */
 
-Tokens* parse_shorts(Tokens *ts, int n_options, Option *options) {
-    Option *option;
-    char *raw;
-    int i;
-
-    raw = &ts->current[1];
-    tokens_move(ts);
-    while (raw[0] != '\0') {
-        for (i=0; i < n_options; i++) {
-            option = &options[i];
-            if (option->oshort != NULL && option->oshort[1] == raw[0])
-                break;
-        }
-        if (i == n_options) {
-            // TODO -%s is specified ambiguously %d times
-            fprintf(stderr, "-%c is not recognized\n", raw[0]);
-            exit(1);
-        }
-        raw++;
-        if (!option->argcount) {
-            option->value = true;
-        } else {
-            if (raw[0] == '\0') {
-                if (ts->current == NULL) {
-                    fprintf(stderr, "%s requires argument\n", option->oshort);
-                    exit(1);
-                }
-                raw = ts->current;
-                tokens_move(ts);
-            }
-            option->argument = raw;
-            break;
-        }
-    }
-    return ts;
+int parse_doubledash(Tokens *ts,
+                     int n_commands, Command *commands,
+                     int n_arguments, Argument *arguments) {
+    // not implemented yet
+    // return parsed + [Argument(None, v) for v in tokens]
+    return 0;
 }
 
-Tokens* parse_long(Tokens *ts, int n_options, Option *options) {
+int parse_long(Tokens *ts, int n_options, Option *options) {
     char *eq = strchr(ts->current, '=');
     char *argument = NULL;
     int i;
@@ -181,14 +152,14 @@ Tokens* parse_long(Tokens *ts, int n_options, Option *options) {
     if (i == n_options) {
         // TODO '%s is not a unique prefix
         fprintf(stderr, "%s is not recognized\n", ts->current);
-        exit(1);
+        return 1;
     }
     tokens_move(ts);
     if (option->argcount) {
         if (argument == NULL) {
             if (ts->current == NULL) {
                 fprintf(stderr, "%s requires argument\n", option->olong);
-                exit(1);
+                return 1;
             }
             option->argument = ts->current;
             tokens_move(ts);
@@ -198,34 +169,83 @@ Tokens* parse_long(Tokens *ts, int n_options, Option *options) {
     } else {
         if (argument != NULL) {
             fprintf(stderr, "%s must not have an argument\n", option->olong);
-            exit(1);
+            return 1;
         }
         option->value = true;
     }
-    return ts;
+    return 0;
 }
 
-Tokens* parse_args(Tokens *ts, Elements *elements) {
-    while (ts->current != NULL) {
-        if (strcmp(ts->current, "--") == 0) {
-            // not implemented yet
-            // return parsed + [Argument(None, v) for v in tokens]
-            return ts;
-        } else if (ts->current[0] == '-' && ts->current[1] == '-') {
-            parse_long(ts, elements->n_options, elements->options);
-        } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
-            parse_shorts(ts, elements->n_options, elements->options);
+int parse_shorts(Tokens *ts, int n_options, Option *options) {
+    Option *option;
+    char *raw;
+    int i;
+
+    raw = &ts->current[1];
+    tokens_move(ts);
+    while (raw[0] != '\0') {
+        for (i=0; i < n_options; i++) {
+            option = &options[i];
+            if (option->oshort != NULL && option->oshort[1] == raw[0])
+                break;
+        }
+        if (i == n_options) {
+            // TODO -%s is specified ambiguously %d times
+            fprintf(stderr, "-%c is not recognized\n", raw[0]);
+            return 1;
+        }
+        raw++;
+        if (!option->argcount) {
+            option->value = true;
         } else {
-            // not implemented yet, just skip for now
-            // parsed.append(Argument(None, tokens.move()))
-            tokens_move(ts);
+            if (raw[0] == '\0') {
+                if (ts->current == NULL) {
+                    fprintf(stderr, "%s requires argument\n", option->oshort);
+                    return 1;
+                }
+                raw = ts->current;
+                tokens_move(ts);
+            }
+            option->argument = raw;
+            break;
         }
     }
-    return ts;
+    return 0;
 }
 
-void elems_to_args(Elements *elements, DocoptArgs *args, bool help,
-                   const char *version){
+int parse_argcmd(Tokens *ts,
+                 int n_commands, Command *commands,
+                 int n_arguments, Argument *arguments) {
+    // not implemented yet, just skip for now
+    // parsed.append(Argument(None, tokens.move()))
+    tokens_move(ts);
+    return 0;
+}
+
+int parse_args(Tokens *ts, Elements *elements) {
+    int ret;
+
+    while (ts->current != NULL) {
+        if (strcmp(ts->current, "--") == 0) {
+            ret = parse_doubledash(ts, elements->n_commands,
+                                   elements->commands, elements->n_arguments,
+                                   elements->arguments);
+            if (!ret) break;
+        } else if (ts->current[0] == '-' && ts->current[1] == '-') {
+            ret = parse_long(ts, elements->n_options, elements->options);
+        } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
+            ret = parse_shorts(ts, elements->n_options, elements->options);
+        } else {
+            ret = parse_argcmd(ts, elements->n_commands, elements->commands,
+                               elements->n_arguments, elements->arguments);
+        }
+        if (ret) return ret;
+    }
+    return 0;
+}
+
+int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
+                  const char *version){
     Command *command;
     Argument *argument;
     Option *option;
@@ -236,11 +256,11 @@ void elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         option = &elements->options[i];
         if (help && option->value && !strcmp(option->olong, "--help")) {
             printf("%s", args->help_message);
-            exit(0);
+            return 1;
         } else if (version && option->value &&
                    !strcmp(option->olong, "--version")) {
             printf("%s\n", version);
-            exit(0);
+            return 1;
         } else if (!strcmp(option->olong, "--drifting")) {
             args->drifting = option->value;
         } else if (!strcmp(option->olong, "--help")) {
@@ -283,7 +303,7 @@ void elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             args->y = argument->value;
         }
     }
-    return;
+    return 0;
 }
 
 
@@ -321,7 +341,9 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     Elements elements = {7, 3, 5, commands, arguments, options};
 
     tokens_new(&ts, argc, argv);
-    parse_args(&ts, &elements);
-    elems_to_args(&elements, &args, help, version);
+    if (parse_args(&ts, &elements))
+        exit(EXIT_FAILURE);
+    if (elems_to_args(&elements, &args, help, version))
+        exit(EXIT_SUCCESS);
     return args;
 }
