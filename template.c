@@ -169,8 +169,24 @@ int parse_shorts(Tokens *ts, int n_options, Option *options) {
 int parse_argcmd(Tokens *ts,
                  int n_commands, Command *commands,
                  int n_arguments, Argument *arguments) {
+    Command *command;
+    int i;
+
+    for (i=0; i < n_commands; i++) {
+        command = &commands[i];
+        if (!strcmp(command->name, ts->current)){
+            command->value = true;
+            tokens_move(ts);
+            return 0;
+        }
+    }
     // not implemented yet, just skip for now
     // parsed.append(Argument(None, tokens.move()))
+    /*fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
+    fprintf(stderr, "  '");
+    for (i=0; i<ts->argc ; i++)
+        fprintf(stderr, "%s ", ts->argv[i]);
+    fprintf(stderr, "'\n");*/
     tokens_move(ts);
     return 0;
 }
