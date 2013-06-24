@@ -10,169 +10,6 @@
 #endif
 
 
-typedef enum {Command, Argument, Option, None} ElementType;
-
-typedef struct {
-    ElementType type;
-    struct {
-        const char *name;
-        bool value;
-    } command;
-    struct {
-        const char *name;
-        char *value;
-        char **array;
-    } argument;
-    struct {
-        const char *oshort;
-        const char *olong;
-        bool argcount;
-        bool value;
-        char *argument;
-    } option;
-} Element;
-
-
-/*
- * Tokens object
- */
-
-typedef struct Tokens {
-    int argc;
-    char **argv;
-    int i;
-    char *current;
-} Tokens;
-
-Tokens* tokens_new(Tokens *ts, int argc, char **argv) {
-    struct Tokens update = {argc, argv, 0, argv[0]};
-    (*ts) = update;
-    return ts;
-}
-
-Tokens* tokens_move(Tokens *ts) {
-    if (ts->i < ts->argc) {
-        ts->current = ts->argv[++ts->i];
-    }
-    if (ts->i == ts->argc) {
-        ts->current = NULL;
-    }
-    return ts;
-}
-
-
-/*
- * ARGV parsing functions
- */
-
-Tokens* parse_shorts(Tokens *ts, Element options[]) {
-    Element *o;
-    char *raw;
-
-    raw = &ts->current[1];
-    tokens_move(ts);
-    while (raw[0] != '\0') {
-        int i = 0;
-        o = &options[i];
-        while (o->type != None) {
-            if (o->type == Option && o->option.oshort != NULL
-                                  && o->option.oshort[1] == raw[0]) {
-                break;
-            }
-            o = &options[++i];
-        }
-        if (o->type == None) {  // TODO -%s is specified ambiguously %d times
-            fprintf(stderr, "-%c is not recognized\n", raw[0]);
-            exit(1);
-        }
-        raw++;
-        if (!o->option.argcount) {
-            o->option.value = true;
-        } else {
-            if (raw[0] == '\0') {
-                if (ts->current == NULL) {
-                    fprintf(stderr, "%s requires argument\n",
-                            o->option.oshort);
-                    exit(1);
-                }
-                raw = ts->current;
-                tokens_move(ts);
-            }
-            o->option.argument = raw;
-            break;
-        }
-    }
-    return ts;
-}
-
-Tokens* parse_long(Tokens *ts, Element options[]) {
-    char *eq = strchr(ts->current, '=');
-    char *argument = NULL;
-    int i = 0;
-    Element *o;
-
-    if (eq != NULL) {
-        *eq = '\0'; // "--option=value\0" => "--option\0value\0"
-        argument = eq + 1;
-    }
-    o = &options[i];
-    while (o->type != None) {
-        if (o->type == Option &&
-                strncmp(ts->current, o->option.olong, strlen(ts->current)) == 0) {
-            break;
-        }
-        o = &options[++i];
-    }
-    if (o->type == None) {  // TODO '%s is not a unique prefix
-        fprintf(stderr, "%s is not recognized\n", ts->current);
-        exit(1);
-    }
-    tokens_move(ts);
-    if (o->option.argcount) {
-        if (argument == NULL) {
-            if (ts->current == NULL) {
-                fprintf(stderr, "%s requires argument\n", o->option.olong);
-                exit(1);
-            }
-            o->option.argument = ts->current;
-            tokens_move(ts);
-        } else {
-            o->option.argument = argument;
-        }
-    } else {
-        if (argument != NULL) {
-            fprintf(stderr, "%s must not have an argument\n", o->option.olong);
-            exit(1);
-        }
-        o->option.value = true;
-    }
-    return ts;
-}
-
-Tokens* parse_args(Tokens *ts, Element options[]) {
-    while (ts->current != NULL) {
-        if (strcmp(ts->current, "--") == 0) {
-            // not implemented yet
-            return ts;
-            //return parsed + [Argument(None, v) for v in tokens]
-        } else if (ts->current[0] == '-' && ts->current[1] == '-') {
-            parse_long(ts, options);
-        } else if (ts->current[0] == '-' ) {
-            parse_shorts(ts, options);
-        } else {
-            // not implemented yet
-            tokens_move(ts); // just skip for now
-            //parsed.append(Argument(None, tokens.move()))
-        }
-    }
-    return ts;
-}
-
-
-/*
- * Main docopt function
- */
-
 typedef struct {
     /* commands */
     int create;
@@ -227,94 +64,297 @@ const char usage_pattern[] =
 "  naval_fate.py --help\n"
 "  naval_fate.py --version";
 
+typedef struct {
+    const char *name;
+    bool value;
+} Command;
+
+typedef struct {
+    const char *name;
+    char *value;
+    char **array;
+} Argument;
+
+typedef struct {
+    const char *oshort;
+    const char *olong;
+    bool argcount;
+    bool value;
+    char *argument;
+} Option;
+
+typedef struct {
+    int n_commands;
+    int n_arguments;
+    int n_options;
+    Command *commands;
+    Argument *arguments;
+    Option *options;
+} Elements;
+
+
+/*
+ * Tokens object
+ */
+
+typedef struct Tokens {
+    int argc;
+    char **argv;
+    int i;
+    char *current;
+} Tokens;
+
+Tokens tokens_new(int argc, char **argv) {
+    Tokens ts = {argc, argv, 0, argv[0]};
+    return ts;
+}
+
+Tokens* tokens_move(Tokens *ts) {
+    if (ts->i < ts->argc) {
+        ts->current = ts->argv[++ts->i];
+    }
+    if (ts->i == ts->argc) {
+        ts->current = NULL;
+    }
+    return ts;
+}
+
+
+/*
+ * ARGV parsing functions
+ */
+
+int parse_doubledash(Tokens *ts,
+                     int n_commands, Command *commands,
+                     int n_arguments, Argument *arguments) {
+    // not implemented yet
+    // return parsed + [Argument(None, v) for v in tokens]
+    return 0;
+}
+
+int parse_long(Tokens *ts, int n_options, Option *options) {
+    char *eq = strchr(ts->current, '=');
+    int i;
+    int len_prefix;
+    Option *option;
+
+    len_prefix = (eq-(ts->current))/sizeof(char);
+    for (i=0; i < n_options; i++) {
+        option = &options[i];
+        if (!strncmp(ts->current, option->olong, len_prefix))
+            break;
+    }
+    if (i == n_options) {
+        // TODO '%s is not a unique prefix
+        fprintf(stderr, "%s is not recognized\n", ts->current);
+        return 1;
+    }
+    tokens_move(ts);
+    if (option->argcount) {
+        if (eq == NULL) {
+            if (ts->current == NULL) {
+                fprintf(stderr, "%s requires argument\n", option->olong);
+                return 1;
+            }
+            option->argument = ts->current;
+            tokens_move(ts);
+        } else {
+            option->argument = eq + 1;
+        }
+    } else {
+        if (eq != NULL) {
+            fprintf(stderr, "%s must not have an argument\n", option->olong);
+            return 1;
+        }
+        option->value = true;
+    }
+    return 0;
+}
+
+int parse_shorts(Tokens *ts, int n_options, Option *options) {
+    Option *option;
+    char *raw;
+    int i;
+
+    raw = &ts->current[1];
+    tokens_move(ts);
+    while (raw[0] != '\0') {
+        for (i=0; i < n_options; i++) {
+            option = &options[i];
+            if (option->oshort != NULL && option->oshort[1] == raw[0])
+                break;
+        }
+        if (i == n_options) {
+            // TODO -%s is specified ambiguously %d times
+            fprintf(stderr, "-%c is not recognized\n", raw[0]);
+            return 1;
+        }
+        raw++;
+        if (!option->argcount) {
+            option->value = true;
+        } else {
+            if (raw[0] == '\0') {
+                if (ts->current == NULL) {
+                    fprintf(stderr, "%s requires argument\n", option->oshort);
+                    return 1;
+                }
+                raw = ts->current;
+                tokens_move(ts);
+            }
+            option->argument = raw;
+            break;
+        }
+    }
+    return 0;
+}
+
+int parse_argcmd(Tokens *ts,
+                 int n_commands, Command *commands,
+                 int n_arguments, Argument *arguments) {
+    Command *command;
+    int i;
+
+    for (i=0; i < n_commands; i++) {
+        command = &commands[i];
+        if (!strcmp(command->name, ts->current)){
+            command->value = true;
+            tokens_move(ts);
+            return 0;
+        }
+    }
+    // not implemented yet, just skip for now
+    // parsed.append(Argument(None, tokens.move()))
+    /*fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
+    fprintf(stderr, "  '");
+    for (i=0; i<ts->argc ; i++)
+        fprintf(stderr, "%s ", ts->argv[i]);
+    fprintf(stderr, "'\n");*/
+    tokens_move(ts);
+    return 0;
+}
+
+int parse_args(Tokens *ts, Elements *elements) {
+    int ret;
+
+    while (ts->current != NULL) {
+        if (strcmp(ts->current, "--") == 0) {
+            ret = parse_doubledash(ts, elements->n_commands,
+                                   elements->commands, elements->n_arguments,
+                                   elements->arguments);
+            if (!ret) break;
+        } else if (ts->current[0] == '-' && ts->current[1] == '-') {
+            ret = parse_long(ts, elements->n_options, elements->options);
+        } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
+            ret = parse_shorts(ts, elements->n_options, elements->options);
+        } else {
+            ret = parse_argcmd(ts, elements->n_commands, elements->commands,
+                               elements->n_arguments, elements->arguments);
+        }
+        if (ret) return ret;
+    }
+    return 0;
+}
+
+int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
+                  const char *version){
+    Command *command;
+    Argument *argument;
+    Option *option;
+    int i;
+
+    /* options */
+    for (i=0; i < elements->n_options; i++) {
+        option = &elements->options[i];
+        if (help && option->value && !strcmp(option->olong, "--help")) {
+            printf("%s", args->help_message);
+            return 1;
+        } else if (version && option->value &&
+                   !strcmp(option->olong, "--version")) {
+            printf("%s\n", version);
+            return 1;
+        } else if (!strcmp(option->olong, "--drifting")) {
+            args->drifting = option->value;
+        } else if (!strcmp(option->olong, "--help")) {
+            args->help = option->value;
+        } else if (!strcmp(option->olong, "--moored")) {
+            args->moored = option->value;
+        } else if (!strcmp(option->olong, "--version")) {
+            args->version = option->value;
+        } else if (!strcmp(option->olong, "--speed")) {
+            args->speed = option->argument;
+        }
+    }
+    /* commands */
+    for (i=0; i < elements->n_commands; i++) {
+        command = &elements->commands[i];
+        if (!strcmp(command->name, "create")) {
+            args->create = command->value;
+        } else if (!strcmp(command->name, "mine")) {
+            args->mine = command->value;
+        } else if (!strcmp(command->name, "move")) {
+            args->move = command->value;
+        } else if (!strcmp(command->name, "remove")) {
+            args->remove = command->value;
+        } else if (!strcmp(command->name, "set")) {
+            args->set = command->value;
+        } else if (!strcmp(command->name, "ship")) {
+            args->ship = command->value;
+        } else if (!strcmp(command->name, "shoot")) {
+            args->shoot = command->value;
+        }
+    }
+    /* arguments */
+    for (i=0; i < elements->n_arguments; i++) {
+        argument = &elements->arguments[i];
+        if (!strcmp(argument->name, "<name>")) {
+            args->name = argument->value;
+        } else if (!strcmp(argument->name, "<x>")) {
+            args->x = argument->value;
+        } else if (!strcmp(argument->name, "<y>")) {
+            args->y = argument->value;
+        }
+    }
+    return 0;
+}
+
+
+/*
+ * Main docopt function
+ */
+
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
-    int i = 0;
-    Tokens ts;
     DocoptArgs args = {
         0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
         usage_pattern, help_message
     };
-    Element options[] = {
-        {Command, {"create", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"mine", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"move", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"remove", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"set", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"ship", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Command, {"shoot", 0}, {NULL, NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<name>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<x>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Argument, {NULL, false}, {"<y>", NULL, NULL}, {NULL, NULL, false, false, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--drifting", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {"-h", "--help", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--moored", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--version", 0, 0, NULL}},
-        {Option, {NULL, false}, {NULL, NULL, NULL}, {NULL, "--speed", 1, 0, NULL}},
-        {None}
+    Tokens ts;
+    Command commands[] = {
+        {"create", 0},
+        {"mine", 0},
+        {"move", 0},
+        {"remove", 0},
+        {"set", 0},
+        {"ship", 0},
+        {"shoot", 0}
     };
-    Element *o;
+    Argument arguments[] = {
+        {"<name>", NULL, NULL},
+        {"<x>", NULL, NULL},
+        {"<y>", NULL, NULL}
+    };
+    Option options[] = {
+        {NULL, "--drifting", 0, 0, NULL},
+        {"-h", "--help", 0, 0, NULL},
+        {NULL, "--moored", 0, 0, NULL},
+        {NULL, "--version", 0, 0, NULL},
+        {NULL, "--speed", 1, 0, NULL}
+    };
+    Elements elements = {7, 3, 5, commands, arguments, options};
 
-    tokens_new(&ts, argc, argv);
-    parse_args(&ts, options);
-
-    o = &options[i];
-    while (o->type != None) {
-        if (o->type == Option && help && o->option.value
-                 && strcmp(o->option.olong, "--help") == 0) {
-            printf("%s", args.help_message);
-            exit(0);
-        } else if (o->type == Option && version && o->option.value
-                           && strcmp(o->option.olong, "--version") == 0) {
-            printf("%s\n", version);
-            exit(0);
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "create") == 0) {
-            args.create = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "mine") == 0) {
-            args.mine = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "move") == 0) {
-            args.move = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "remove") == 0) {
-            args.remove = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "set") == 0) {
-            args.set = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "ship") == 0) {
-            args.ship = o->command.value;
-        } else if (o->type == Command &&
-                   strcmp(o->command.name, "shoot") == 0) {
-            args.shoot = o->command.value;
-        } else if (o->type == Argument &&
-                   strcmp(o->argument.name, "<name>") == 0) {
-            args.name = o->argument.value;
-        } else if (o->type == Argument &&
-                   strcmp(o->argument.name, "<x>") == 0) {
-            args.x = o->argument.value;
-        } else if (o->type == Argument &&
-                   strcmp(o->argument.name, "<y>") == 0) {
-            args.y = o->argument.value;
-        } else if (o->type == Option &&
-                   strcmp(o->option.olong, "--drifting") == 0) {
-            args.drifting = o->option.value;
-        } else if (o->type == Option &&
-                   strcmp(o->option.olong, "--help") == 0) {
-            args.help = o->option.value;
-        } else if (o->type == Option &&
-                   strcmp(o->option.olong, "--moored") == 0) {
-            args.moored = o->option.value;
-        } else if (o->type == Option &&
-                   strcmp(o->option.olong, "--version") == 0) {
-            args.version = o->option.value;
-        } else if (o->option.argument &&
-                   strcmp(o->option.olong, "--speed") == 0) {
-            args.speed = o->option.argument;
-        }
-        o = &options[++i];
-    }
+    ts = tokens_new(argc, argv);
+    if (parse_args(&ts, &elements))
+        exit(EXIT_FAILURE);
+    if (elems_to_args(&elements, &args, help, version))
+        exit(EXIT_SUCCESS);
     return args;
 }
-
