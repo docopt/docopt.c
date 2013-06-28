@@ -1,6 +1,10 @@
 #include "docopt.c"
 
-#define assert(x) printf("%c", x ? '.' : 'F')
+#define assert(x) \
+    if (x) \
+        printf("."); \
+    else \
+        printf("\n[%s, line %d] test failed", __FILE__, __LINE__)
 
  /*
   * TokenStream
@@ -25,17 +29,17 @@ int test_tokens(void) {
   */
 
 int test_parse_shorts_1(void) {
+    int ret;
     char *argv[] = {"-a"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
         {"-a", NULL, false, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_shorts(&ts, 1, options);
+    ret = parse_shorts(&ts, &elements);
     option = options[0];
-
     assert(!ret);
     if (ret) return ret;
     assert(!strcmp(option.oshort, "-a"));
@@ -47,6 +51,7 @@ int test_parse_shorts_1(void) {
 }
 
 int test_parse_shorts_2(void) {
+    int ret;
     char *argv[] = {"-ab"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -54,9 +59,9 @@ int test_parse_shorts_2(void) {
         {"-b", NULL, false, false, NULL}
     };
     Option option1, option2;
-    int ret;
+    Elements elements = {0, 0, 2, NULL, NULL, options};
 
-    ret = parse_shorts(&ts, 2, options);
+    ret = parse_shorts(&ts, &elements);
     option1 = options[0];
     option2 = options[1];
     assert(!ret);
@@ -69,6 +74,7 @@ int test_parse_shorts_2(void) {
 }
 
 int test_parse_shorts_3(void) {
+    int ret;
     char *argv[] = {"-b"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -76,9 +82,9 @@ int test_parse_shorts_3(void) {
         {"-b", NULL, false, false, NULL}
     };
     Option option1, option2;
-    int ret;
+    Elements elements = {0, 0, 2, NULL, NULL, options};
 
-    ret = parse_shorts(&ts, 2, options);
+    ret = parse_shorts(&ts, &elements);
     option1 = options[0];
     option2 = options[1];
     assert(!ret);
@@ -91,15 +97,16 @@ int test_parse_shorts_3(void) {
 }
 
 int test_parse_shorts_4(void) {
+    int ret;
     char *argv[] = {"-aARG"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
         {"-a", NULL, true, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_shorts(&ts, 1, options);
+    ret = parse_shorts(&ts, &elements);
     option = options[0];
     assert(!ret);
     if (ret) return ret;
@@ -110,15 +117,16 @@ int test_parse_shorts_4(void) {
 }
 
 int test_parse_shorts_5(void) {
+    int ret;
     char *argv[] = {"-a", "ARG"};
     Tokens ts = tokens_new(2, argv);
     Option options[] = {
         {"-a", NULL, true, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_shorts(&ts, 1, options);
+    ret = parse_shorts(&ts, &elements);
     option = options[0];
     assert(!ret);
     if (ret) return ret;
@@ -133,15 +141,16 @@ int test_parse_shorts_5(void) {
   */
 
 int test_parse_long_1(void) {
+    int ret;
     char *argv[] = {"--all"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
         {NULL, "--all", false, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_long(&ts, 1, options);
+    ret = parse_long(&ts, &elements);
     option = options[0];
     assert(!ret);
     if (ret) return ret;
@@ -154,6 +163,7 @@ int test_parse_long_1(void) {
 }
 
 int test_parse_long_2(void) {
+    int ret;
     char *argv[] = {"--all"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -162,9 +172,9 @@ int test_parse_long_2(void) {
     };
     Option option1;
     Option option2;
-    int ret;
+    Elements elements = {0, 0, 2, NULL, NULL, options};
 
-    ret = parse_long(&ts, 2, options);
+    ret = parse_long(&ts, &elements);
     option1 = options[0];
     option2 = options[1];
     assert(!ret);
@@ -183,15 +193,16 @@ int test_parse_long_2(void) {
 }
 
 int test_parse_long_3(void) {
+    int ret;
     char *argv[] = {"--all=ARG"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
         {NULL, "--all", true, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_long(&ts, 1, options);
+    ret = parse_long(&ts, &elements);
     option = options[0];
     assert(!ret);
     if (ret) return ret;
@@ -204,15 +215,16 @@ int test_parse_long_3(void) {
 }
 
 int test_parse_long_4(void) {
+    int ret;
     char *argv[] = {"--all", "ARG"};
     Tokens ts = tokens_new(2, argv);
     Option options[] = {
         {NULL, "--all", true, false, NULL}
     };
     Option option;
-    int ret;
+    Elements elements = {0, 0, 1, NULL, NULL, options};
 
-    ret = parse_long(&ts, 1, options);
+    ret = parse_long(&ts, &elements);
     option = options[0];
     assert(!ret);
     if (ret) return ret;
