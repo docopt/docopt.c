@@ -142,15 +142,11 @@ if __name__ == '__main__':
         sys.exit(e)
 
     doc = args['<docopt>']
-    usage_sections = docopt.parse_section('usage:', doc)
-
-    if len(usage_sections) == 0:
-        raise docopt.DocoptLanguageError(
-                '"usage:" (case-insensitive) not found.')
-    if len(usage_sections) > 1:
-        raise docopt.DocoptLanguageError(
-                'More than one "usage:" (case-insensitive).')
-    usage = usage_sections[0]
+    usage = docopt.parse_section('usage:', doc)
+    s = ['More than one ', '"usage:" (case-insensitive)', ' not found.']
+    usage = {0: s[1:], 1: usage[0] if usage else None}.get(len(usage), s[:2])
+    if isinstance(usage, list):
+        raise docopt.DocoptLanguageError(''.join(usage))
 
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
