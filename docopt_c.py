@@ -104,7 +104,7 @@ def parse_leafs(pattern):
     while queue:
         level, node = queue.pop(-1)  # depth-first search
         if hasattr(node, 'children'):
-            children = [((level+1), child) for child in node.children]
+            children = [((level + 1), child) for child in node.children]
             children.reverse()
             queue.extend(children)
         else:
@@ -142,15 +142,11 @@ if __name__ == '__main__':
         sys.exit(e)
 
     doc = args['<docopt>']
-    usage_sections = docopt.parse_section('usage:', doc)
-
-    if len(usage_sections) == 0:
-        raise docopt.DocoptLanguageError(
-                '"usage:" (case-insensitive) not found.')
-    if len(usage_sections) > 1:
-        raise docopt.DocoptLanguageError(
-                'More than one "usage:" (case-insensitive).')
-    usage = usage_sections[0]
+    usage = docopt.parse_section('usage:', doc)
+    s = ['More than one ', '"usage:" (case-insensitive)', ' not found.']
+    usage = {0: s[1:], 1: usage[0] if usage else None}.get(len(usage), s[:2])
+    if isinstance(usage, list):
+        raise docopt.DocoptLanguageError(''.join(usage))
 
     options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
@@ -180,11 +176,10 @@ if __name__ == '__main__':
     t_elems_cmds = ('\n        ' + t_elems_cmds) if t_elems_cmds != '' else ''
     t_elems_args = ',\n        '.join([c_argument(arg) for arg in (arguments)])
     t_elems_args = ('\n        ' + t_elems_args) if t_elems_args != '' else ''
-    t_elems_opts = ',\n        '.join([c_option(o) for o in (flags+options)])
+    t_elems_opts = ',\n        '.join([c_option(o) for o in (flags + options)])
     t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
-    t_elems_n = ', '.join([str(len(lst))
-                           for lst in [commands, arguments, (flags+options)]])
-
+    t_elems_n = ', '.join([str(len(l))
+                           for l in [commands, arguments, (flags + options)]])
     t_if_command = ' else '.join(c_if_command(command) for command in commands)
     t_if_command = ('\n        ' + t_if_command) if t_if_command != '' else ''
     t_if_argument = ' else '.join(c_if_argument(arg) for arg in arguments)
