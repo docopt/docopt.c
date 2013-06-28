@@ -124,19 +124,24 @@ Tokens* tokens_move(Tokens *ts) {
  * ARGV parsing functions
  */
 
-int parse_doubledash(Tokens *ts,
-                     int n_commands, Command *commands,
-                     int n_arguments, Argument *arguments) {
+int parse_doubledash(Tokens *ts, Elements *elements) {
+    //int n_commands = elements->n_commands;
+    //int n_arguments = elements->n_arguments;
+    //Command *commands = elements->commands;
+    //Argument *arguments = elements->arguments;
+
     // not implemented yet
     // return parsed + [Argument(None, v) for v in tokens]
     return 0;
 }
 
-int parse_long(Tokens *ts, int n_options, Option *options) {
-    char *eq = strchr(ts->current, '=');
+int parse_long(Tokens *ts, Elements *elements) {
     int i;
     int len_prefix;
+    int n_options = elements->n_options;
+    char *eq = strchr(ts->current, '=');
     Option *option;
+    Option *options = elements->options;
 
     len_prefix = (eq-(ts->current))/sizeof(char);
     for (i=0; i < n_options; i++) {
@@ -171,10 +176,12 @@ int parse_long(Tokens *ts, int n_options, Option *options) {
     return 0;
 }
 
-int parse_shorts(Tokens *ts, int n_options, Option *options) {
-    Option *option;
+int parse_shorts(Tokens *ts, Elements *elements) {
     char *raw;
     int i;
+    int n_options = elements->n_options;
+    Option *option;
+    Option *options = elements->options;
 
     raw = &ts->current[1];
     tokens_move(ts);
@@ -208,11 +215,13 @@ int parse_shorts(Tokens *ts, int n_options, Option *options) {
     return 0;
 }
 
-int parse_argcmd(Tokens *ts,
-                 int n_commands, Command *commands,
-                 int n_arguments, Argument *arguments) {
-    Command *command;
+int parse_argcmd(Tokens *ts, Elements *elements) {
     int i;
+    int n_commands = elements->n_commands;
+    //int n_arguments = elements->n_arguments;
+    Command *command;
+    Command *commands = elements->commands;
+    //Argument *arguments = elements->arguments;
 
     for (i=0; i < n_commands; i++) {
         command = &commands[i];
@@ -238,18 +247,14 @@ int parse_args(Tokens *ts, Elements *elements) {
 
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
-            ret = parse_doubledash(ts, elements->n_commands,
-                                   elements->commands, elements->n_arguments,
-                                   elements->arguments);
+            ret = parse_doubledash(ts, elements);
             if (!ret) break;
         } else if (ts->current[0] == '-' && ts->current[1] == '-') {
-            ret = parse_long(ts, elements->n_options, elements->options);
+            ret = parse_long(ts, elements);
         } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
-            ret = parse_shorts(ts, elements->n_options, elements->options);
-        } else {
-            ret = parse_argcmd(ts, elements->n_commands, elements->commands,
-                               elements->n_arguments, elements->arguments);
-        }
+            ret = parse_shorts(ts, elements);
+        } else
+            ret = parse_argcmd(ts, elements);
         if (ret) return ret;
     }
     return 0;
