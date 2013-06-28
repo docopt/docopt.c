@@ -218,10 +218,10 @@ int parse_shorts(Tokens *ts, Elements *elements) {
 int parse_argcmd(Tokens *ts, Elements *elements) {
     int i;
     int n_commands = elements->n_commands;
-    int n_arguments = elements->n_arguments;
+    //int n_arguments = elements->n_arguments;
     Command *command;
     Command *commands = elements->commands;
-    Argument *arguments = elements->arguments;
+    //Argument *arguments = elements->arguments;
 
     for (i=0; i < n_commands; i++) {
         command = &commands[i];
