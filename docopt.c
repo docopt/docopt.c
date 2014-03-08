@@ -286,7 +286,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--version")) {
             args->version = option->value;
         } else if (!strcmp(option->olong, "--speed")) {
-            args->speed = option->argument;
+            if (option->argument)
+                args->speed = option->argument;
         }
     }
     /* commands */
@@ -363,3 +364,4 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         exit(EXIT_SUCCESS);
     return args;
 }
+
