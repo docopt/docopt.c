@@ -91,7 +91,8 @@ def c_if_flag(o):
 
 def c_if_option(o):
     t = """ else if (!strcmp(option->o%s, %s)) {
-            args->%s = option->argument;
+            if (option->argument)
+                args->%s = option->argument;
         }"""
     return t % (('long' if o.long else 'short'),
                 to_c(o.long or o.short),
