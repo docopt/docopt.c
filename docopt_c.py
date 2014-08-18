@@ -38,8 +38,12 @@ def to_c(s):
         return ('"%s"' % s.replace('\\', r'\\')\
                           .replace('"', r'\"')\
                           .replace('\n', '\\n"\n"'))
-    if type(s) in [int, long, float]:
-        return str(s)
+    if sys.version_info[0] >= 3: # Python 3 doesn't have longs!
+        if type(s) in [int, float]:
+            return str(s)
+    else:
+        if type(s) in [int, long, float]:
+            return str(s)
     if s is True:
         return '1'
     if s is False:
