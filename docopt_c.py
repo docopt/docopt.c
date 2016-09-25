@@ -31,6 +31,7 @@ import re
 import docopt
 from string import Template
 import textwrap
+import numbers
 
 
 def to_c(s):
@@ -38,12 +39,12 @@ def to_c(s):
         return ('"%s"' % s.replace('\\', r'\\')\
                           .replace('"', r'\"')\
                           .replace('\n', '\\n"\n"'))
-    if type(s) in [int, long, float]:
-        return str(s)
     if s is True:
         return '1'
     if s is False:
         return '0'
+    if isinstance(s, numbers.Number):
+        return str(s)
     if s is None:
         return 'NULL'
     raise ValueError("can't convert to c type: %r" % s)
