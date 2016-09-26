@@ -31,6 +31,7 @@ import re
 import docopt
 from string import Template
 import textwrap
+import numbers
 
 
 def to_c(s):
@@ -38,12 +39,12 @@ def to_c(s):
         return ('"%s"' % s.replace('\\', r'\\')\
                           .replace('"', r'\"')\
                           .replace('\n', '\\n"\n"'))
-    if type(s) in [int, long, float]:
-        return str(s)
     if s is True:
         return '1'
     if s is False:
         return '0'
+    if isinstance(s, numbers.Number):
+        return str(s)
     if s is None:
         return 'NULL'
     raise ValueError("can't convert to c type: %r" % s)
@@ -99,25 +100,32 @@ def c_if_option(o):
                 c_name(o.long or o.short))
 
 
-def parse_leafs(pattern):
+def parse_leafs(pattern, all_options):
+    options_shortcut = False
     leafs = []
     queue = [(0, pattern)]
     while queue:
         level, node = queue.pop(-1)  # depth-first search
-        if hasattr(node, 'children'):
+        if not options_shortcut and type(node) == docopt.OptionsShortcut:
+            options_shortcut = True
+        elif hasattr(node, 'children'):
             children = [((level + 1), child) for child in node.children]
             children.reverse()
             queue.extend(children)
         else:
             if node not in leafs:
                 leafs.append(node)
-    leafs.sort(key=lambda e: e.name)
+    sort_by_name = lambda e: e.name
+    leafs.sort(key=sort_by_name)
     commands = [leaf for leaf in leafs if type(leaf) == docopt.Command]
     arguments = [leaf for leaf in leafs if type(leaf) == docopt.Argument]
-    flags = [leaf for leaf in leafs
-                  if type(leaf) == docopt.Option and leaf.argcount == 0]
-    options = [leaf for leaf in leafs
-                    if type(leaf) == docopt.Option and leaf.argcount > 0]
+    if options_shortcut:
+        option_leafs = all_options
+        option_leafs.sort(key=sort_by_name)
+    else:
+        option_leafs = [leaf for leaf in leafs if type(leaf) == docopt.Option]
+    flags = [leaf for leaf in option_leafs if leaf.argcount == 0]
+    options = [leaf for leaf in option_leafs if  leaf.argcount > 0]
     leafs = [i for sl in [commands, arguments, flags, options] for i in sl]
     return leafs, commands, arguments, flags, options
 
@@ -149,9 +157,9 @@ if __name__ == '__main__':
     if isinstance(usage, list):
         raise docopt.DocoptLanguageError(''.join(usage))
 
-    options = docopt.parse_defaults(doc)
-    pattern = docopt.parse_pattern(docopt.formal_usage(usage), options)
-    leafs, commands, arguments, flags, options = parse_leafs(pattern)
+    all_options = docopt.parse_defaults(doc)
+    pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
+    leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
     t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
                                 for cmd in commands)

@@ -225,6 +225,10 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
     Option *option;
     int i;
 
+    // fix gcc-related compiler warnings (unused)
+    (void)command;
+    (void)argument;
+
     /* options */
     for (i=0; i < elements->n_options; i++) {
         option = &elements->options[i];
