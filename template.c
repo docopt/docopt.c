@@ -24,14 +24,16 @@ $usage_pattern;
 
 typedef struct {
     const char *name;
-    bool value;
-} Command;
+    char *value;
+    int count;
+    char **array;
+} Argument;
 
 typedef struct {
     const char *name;
-    char *value;
-    char **array;
-} Argument;
+    bool value;
+    Argument *args;
+} Command;
 
 typedef struct {
     const char *oshort;
@@ -77,6 +79,11 @@ Tokens* tokens_move(Tokens *ts) {
     return ts;
 }
 
+/*
+ * Positional Arguments
+ */
+
+$positional
 
 /*
  * ARGV parsing functions
@@ -95,13 +102,18 @@ int parse_doubledash(Tokens *ts, Elements *elements) {
 
 int parse_long(Tokens *ts, Elements *elements) {
     int i;
-    int len_prefix;
+    size_t len_prefix;
     int n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
     Option *option;
     Option *options = elements->options;
 
-    len_prefix = (eq-(ts->current))/sizeof(char);
+    if (eq) {
+        len_prefix = (eq-(ts->current))/sizeof(char);
+    }
+    else {
+        len_prefix = strlen(ts->current);
+    }
     for (i=0; i < n_options; i++) {
         option = &options[i];
         if (!strncmp(ts->current, option->olong, len_prefix))
@@ -174,28 +186,37 @@ int parse_shorts(Tokens *ts, Elements *elements) {
 }
 
 int parse_argcmd(Tokens *ts, Elements *elements) {
-    int i;
+    int i, j;
     int n_commands = elements->n_commands;
-    //int n_arguments = elements->n_arguments;
+    int n_arguments = elements->n_arguments;
     Command *command;
     Command *commands = elements->commands;
-    //Argument *arguments = elements->arguments;
+    Argument *arguments = elements->arguments;
 
     for (i=0; i < n_commands; i++) {
         command = &commands[i];
-        if (!strcmp(command->name, ts->current)){
+        if (!strcmp(command->name, ts->current)) {
+            Argument *cmd_arg = command->args;
             command->value = true;
             tokens_move(ts);
+            /* store positional arguments */
+            while (cmd_arg && cmd_arg->name && ts->current) {
+                for (j=0; j < n_arguments; j++) {
+                    Argument *argument = &arguments[j];
+                    if (!strcmp(argument->name, cmd_arg->name)) {
+                        // fprintf(stderr, "! argv[%u] of %u name '%s' matches %u\n", ts->i, ts->argc, ts->argv[ts->i], j);
+                        cmd_arg->value = argument->value = ts->current;
+                        cmd_arg->count = argument->count = ts->argc - ts->i;
+                        cmd_arg->array = argument->array = &ts->argv[ts->i];
+                        break;
+                    }
+                }
+                tokens_move(ts);
+                cmd_arg++;
+            }
             return 0;
         }
     }
-    // not implemented yet, just skip for now
-    // parsed.append(Argument(None, tokens.move()))
-    /*fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
-    fprintf(stderr, "  '");
-    for (i=0; i<ts->argc ; i++)
-        fprintf(stderr, "%s ", ts->argv[i]);
-    fprintf(stderr, "'\n");*/
     tokens_move(ts);
     return 0;
 }

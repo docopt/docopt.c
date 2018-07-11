@@ -33,9 +33,13 @@ from string import Template
 import textwrap
 import numbers
 
+c_positional = ''
+docopt_prefix = 'docopt_'
 
 def to_c(s):
     if type(s) is str:
+        if (s.startswith(docopt_prefix)):
+            return s;
         return ('"%s"' % s.replace('\\', r'\\')\
                           .replace('"', r'\"')\
                           .replace('\n', '\\n"\n"'))
@@ -51,11 +55,12 @@ def to_c(s):
 
 
 def c_command(o):
-    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value))
+    s = docopt_prefix + o.name
+    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value, s))
 
 
 def c_argument(o):
-    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value, None))
+    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value, 0, None))
 
 
 def c_option(o):
@@ -101,6 +106,8 @@ def c_if_option(o):
 
 
 def parse_leafs(pattern, all_options):
+    global c_positional
+    cmd_arg = ''
     options_shortcut = False
     leafs = []
     queue = [(0, pattern)]
@@ -112,9 +119,17 @@ def parse_leafs(pattern, all_options):
             children = [((level + 1), child) for child in node.children]
             children.reverse()
             queue.extend(children)
+            if (type(node) != docopt.OneOrMore) and (cmd_arg != ''):
+                c_positional += cmd_arg + '\n    {NULL, NULL, 0, NULL}\n};\n'
         else:
             if node not in leafs:
                 leafs.append(node)
+
+        if (type(node) == docopt.Command):
+            cmd_arg = "\nstatic Argument " + docopt_prefix + node.name + '[] = {'
+        elif (type(node) == docopt.Argument):
+            cmd_arg += "\n    " + c_argument(node) + ","
+
     sort_by_name = lambda e: e.name
     leafs.sort(key=sort_by_name)
     commands = [leaf for leaf in leafs if type(leaf) == docopt.Command]
@@ -161,6 +176,8 @@ if __name__ == '__main__':
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
+    # t_pattern = ('\n /* patterns */\n ' + str(pattern))
+
     t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
                                 for cmd in commands)
     t_commands = (('\n    /* commands */\n    ' + t_commands + ';')
@@ -198,6 +215,7 @@ if __name__ == '__main__':
     t_if_option = ''.join(c_if_option(opt) for opt in options)
 
     out = Template(args['--template']).safe_substitute(
+            positional=c_positional,
             commands=t_commands,
             arguments=t_arguments,
             flags=t_flags,
