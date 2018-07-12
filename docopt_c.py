@@ -119,7 +119,7 @@ def parse_leafs(pattern, all_options):
             children = [((level + 1), child) for child in node.children]
             children.reverse()
             queue.extend(children)
-            if (type(node) != docopt.OneOrMore) and (cmd_arg != ''):
+            if ((type(node) != docopt.OneOrMore) and (type(node) != docopt.Optional) and (cmd_arg != '')):
                 c_positional += cmd_arg + '\n    {NULL, NULL, 0, NULL}\n};\n'
         else:
             if node not in leafs:
@@ -175,8 +175,6 @@ if __name__ == '__main__':
     all_options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
-
-    # t_pattern = ('\n /* patterns */\n ' + str(pattern))
 
     t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
                                 for cmd in commands)

@@ -9,6 +9,11 @@
 #include <string.h>
 #endif
 
+#ifdef DOCOPT_DEBUG
+#define DOCOPT_DPRINTF(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DOCOPT_DPRINTF(...)
+#endif
 
 typedef struct {$commands$arguments$flags$options
     /* special */
@@ -105,7 +110,7 @@ int parse_long(Tokens *ts, Elements *elements) {
     size_t len_prefix;
     int n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
-    Option *option;
+    Option *option = NULL;
     Option *options = elements->options;
 
     if (eq) {
@@ -136,12 +141,14 @@ int parse_long(Tokens *ts, Elements *elements) {
         } else {
             option->argument = eq + 1;
         }
+        DOCOPT_DPRINTF("option %s = %s\n", option->olong, option->argument);
     } else {
         if (eq != NULL) {
             fprintf(stderr, "%s must not have an argument\n", option->olong);
             return 1;
         }
         option->value = true;
+        DOCOPT_DPRINTF("option %s=true\n", option->olong);
     }
     return 0;
 }
@@ -150,7 +157,7 @@ int parse_shorts(Tokens *ts, Elements *elements) {
     char *raw;
     int i;
     int n_options = elements->n_options;
-    Option *option;
+    Option *option = NULL;
     Option *options = elements->options;
 
     raw = &ts->current[1];
@@ -186,7 +193,7 @@ int parse_shorts(Tokens *ts, Elements *elements) {
 }
 
 int parse_argcmd(Tokens *ts, Elements *elements) {
-    int i, j;
+    int i;
     int n_commands = elements->n_commands;
     int n_arguments = elements->n_arguments;
     Command *command;
@@ -196,28 +203,38 @@ int parse_argcmd(Tokens *ts, Elements *elements) {
     for (i=0; i < n_commands; i++) {
         command = &commands[i];
         if (!strcmp(command->name, ts->current)) {
-            Argument *cmd_arg = command->args;
+            DOCOPT_DPRINTF("! matched command '%s'\n", command->name);
             command->value = true;
             tokens_move(ts);
-            /* store positional arguments */
-            while (cmd_arg && cmd_arg->name && ts->current) {
-                for (j=0; j < n_arguments; j++) {
-                    Argument *argument = &arguments[j];
-                    if (!strcmp(argument->name, cmd_arg->name)) {
-                        // fprintf(stderr, "! argv[%u] of %u name '%s' matches %u\n", ts->i, ts->argc, ts->argv[ts->i], j);
-                        cmd_arg->value = argument->value = ts->current;
-                        cmd_arg->count = argument->count = ts->argc - ts->i;
-                        cmd_arg->array = argument->array = &ts->argv[ts->i];
-                        break;
-                    }
-                }
-                tokens_move(ts);
-                cmd_arg++;
-            }
+
+            if (command->args) {
+                /* Get the subset of arguments for this command */
+                int n_args = 0;
+
+                /* Count the number of positional arguments in the subset
+                 * TODO: Add the number of arguments to command (ie. ->n_args)
+                 */
+                for (;command->args[n_args].name; n_args++) {};
+
+                /* replace the argument set with the subset */
+                elements->n_arguments = n_args;
+                elements->arguments = command->args;
+            } /* if command arguments */
             return 0;
-        }
-    }
-    tokens_move(ts);
+        } /* if current token is a command */
+    } /* for commands */
+
+    /* Not a command so parse positional arguments */
+    for (i=0; i < n_arguments && ts->current; i++) {
+        arguments[i].value = ts->current;
+        arguments[i].count = ts->argc - ts->i;
+        arguments[i].array = &ts->argv[ts->i];
+        DOCOPT_DPRINTF("! argument[%d]->name %s value %s \n", i, arguments[i].name, arguments[i].value);
+        tokens_move(ts);
+    } /* for arguments */
+
+    ts->current = NULL;
+
     return 0;
 }
 
@@ -268,7 +285,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
     }
     /* arguments */
     for (i=0; i < elements->n_arguments; i++) {
-        argument = &elements->arguments[i];$if_argument
+        argument = &elements->arguments[i];
+        if (!argument->name) {return 0;}$if_argument
     }
     return 0;
 }
