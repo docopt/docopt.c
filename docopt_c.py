@@ -33,7 +33,6 @@ from string import Template
 import textwrap
 import numbers
 
-c_positional = ''
 docopt_prefix = 'docopt_'
 
 def to_c(s):
@@ -106,8 +105,6 @@ def c_if_option(o):
 
 
 def parse_leafs(pattern, all_options):
-    global c_positional
-    cmd_arg = ''
     options_shortcut = False
     leafs = []
     queue = [(0, pattern)]
@@ -119,16 +116,9 @@ def parse_leafs(pattern, all_options):
             children = [((level + 1), child) for child in node.children]
             children.reverse()
             queue.extend(children)
-            if ((type(node) != docopt.OneOrMore) and (type(node) != docopt.Optional) and (cmd_arg != '')):
-                c_positional += cmd_arg + '\n    {NULL, NULL, 0, NULL}\n};\n'
         else:
             if node not in leafs:
                 leafs.append(node)
-
-        if (type(node) == docopt.Command):
-            cmd_arg = "\nstatic Argument " + docopt_prefix + node.name + '[] = {'
-        elif (type(node) == docopt.Argument):
-            cmd_arg += "\n    " + c_argument(node) + ","
 
     sort_by_name = lambda e: e.name
     leafs.sort(key=sort_by_name)
@@ -143,6 +133,67 @@ def parse_leafs(pattern, all_options):
     options = [leaf for leaf in option_leafs if  leaf.argcount > 0]
     leafs = [i for sl in [commands, arguments, flags, options] for i in sl]
     return leafs, commands, arguments, flags, options
+
+def append_argument_set(positional_str, cmd_set, arg_set):
+    if len(cmd_set):
+        cmd_arg = ''
+        for cmd in cmd_set:
+            cmd_arg = "\nstatic Argument " + docopt_prefix + cmd.name + '[] = {'
+            for arg in arg_set:
+                cmd_arg += "\n    " + c_argument(arg) + ","
+            cmd_arg += '\n    {NULL, NULL, 0, NULL}\n};\n'
+            positional_str += cmd_arg
+        cmd_set = []
+        arg_set = []
+    return positional_str, cmd_set, arg_set
+
+def parse_positionals(pattern):
+    c_positional = ''
+    cmd_set = []
+    arg_set = []
+    seen_set = []
+    options_shortcut = False
+    leafs = []
+    queue = [(0, pattern)]
+    while queue:
+        level, node = queue.pop(-1)  # depth-first search
+        if not options_shortcut and type(node) == docopt.OptionsShortcut:
+            options_shortcut = True
+        elif hasattr(node, 'children'):
+            children = [((level + 1), child) for child in node.children]
+            children.reverse()
+            queue.extend(children)
+        else:
+            if node not in leafs:
+                leafs.append(node)
+
+        # print("Node " + str(node))
+
+        if (type(node) == docopt.Command):
+            if (node) not in seen_set:
+                cmd_set.append(node)
+                seen_set.append(node)
+
+        elif (type(node) == docopt.Argument):
+            if len(cmd_set) != 0:
+                arg_set.append(node)
+
+        elif (type(node) == docopt.Required):
+            c_positional, cmd_set, arg_set = append_argument_set(c_positional, cmd_set, arg_set)
+        elif (type(node) == docopt.Either):
+            continue
+        elif (type(node) == docopt.OneOrMore):
+            continue
+        elif (type(node) == docopt.Optional):
+            continue
+        elif (type(node) == docopt.Option):
+            continue
+        else:
+            c_positional, cmd_set, arg_set = append_argument_set(c_positional, cmd_set, arg_set)
+
+    c_positional, cmd_set, arg_set = append_argument_set(c_positional, cmd_set, arg_set)
+
+    return c_positional
 
 
 if __name__ == '__main__':
@@ -176,6 +227,12 @@ if __name__ == '__main__':
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
+    # t_pattern = ''
+    t_pattern = ('#if 0\n /* docopt parsed pattern */\n' + 
+                 re.sub(r'([ \(])([A-Za-z]*\()', r'\n\1\2', str(pattern))
+                 + '\n#endif')
+
+    c_positional = parse_positionals(pattern)
     t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
                                 for cmd in commands)
     t_commands = (('\n    /* commands */\n    ' + t_commands + ';')
@@ -199,7 +256,7 @@ if __name__ == '__main__':
     t_elems_cmds = ',\n        '.join([c_command(cmd) for cmd in (commands)])
     t_elems_cmds = ('\n        ' + t_elems_cmds) if t_elems_cmds != '' else ''
     t_elems_args = ',\n        '.join([c_argument(arg) for arg in (arguments)])
-    t_elems_args = ('\n        ' + t_elems_args) if t_elems_args != '' else ''
+    t_elems_args = ('\n        ' + t_elems_args + ',') if t_elems_args != '' else ''
     t_elems_opts = ',\n        '.join([c_option(o) for o in (flags + options)])
     t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
     t_elems_n = ', '.join([str(len(l))
@@ -213,6 +270,7 @@ if __name__ == '__main__':
     t_if_option = ''.join(c_if_option(opt) for opt in options)
 
     out = Template(args['--template']).safe_substitute(
+            parsed_pattern=t_pattern,
             positional=c_positional,
             commands=t_commands,
             arguments=t_arguments,
