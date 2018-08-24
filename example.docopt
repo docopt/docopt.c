@@ -5,6 +5,7 @@ Usage:
   naval_fate.py ship <name> move <x> <y> [--speed=<kn>]
   naval_fate.py ship shoot <x> <y>
   naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]
+  naval_fate.py anchor [--up] [<number>]
   naval_fate.py --help
   naval_fate.py --version
 

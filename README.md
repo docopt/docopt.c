@@ -1,9 +1,6 @@
 C-code generator for docopt language
 ====================================
 
-Note, *at this point the code generator handles only options*
-(positional arguments, commands and pattern matching will follow).
-
 ### Step 1. Describe your CLI in docopt language
 
 ```
@@ -55,6 +52,7 @@ int main(int argc, char *argv[])
     printf("    ship == %s\n", args.ship ? "true" : "false");
     printf("    shoot == %s\n", args.shoot ? "true" : "false");
     printf("Arguments\n");
+    printf("    name == %s\n", args.name);
     printf("    x == %s\n", args.x);
     printf("    y == %s\n", args.y);
     printf("Flags\n");
@@ -82,6 +80,7 @@ Commands
     ship == false
     shoot == false
 Arguments
+    name == (null)
     x == (null)
     y == (null)
 Flags
