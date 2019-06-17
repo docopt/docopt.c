@@ -18,6 +18,12 @@ Options:
   -t, --template=<template>
                 Filename used to read a C template.
   -h,--help     Show this help message and exit.
+  -p, --prefix=<prefix>
+                Add a prefix to all struct member variables.
+                This is useful if you want to use variable names that
+                collide with C keywords, for example "register".
+                The generated struct member becomes args.<prefix>register
+                where args.register would cause a complitation error.
 
 Arguments:
   <docopt>      Input file describing your CLI in docopt language.
@@ -63,41 +69,41 @@ def c_option(o):
                                                 False, None))
 
 
-def c_name(s):
-    return ''.join(c if c.isalnum() else '_' for c in s).strip('_')
+def c_name(s, prefix=''):
+    return prefix + ''.join(c if c.isalnum() else '_' for c in s).strip('_')
 
 
-def c_if_command(cmd):
+def c_if_command(cmd, prefix=''):
     t = """if (!strcmp(command->name, %s)) {
             args->%s = command->value;
         }"""
-    return t % (to_c(cmd.name), c_name(cmd.name))
+    return t % (to_c(cmd.name), c_name(cmd.name, prefix))
 
 
-def c_if_argument(arg):
+def c_if_argument(arg, prefix=''):
     t = """if (!strcmp(argument->name, %s)) {
             args->%s = argument->value;
         }"""
-    return t % (to_c(arg.name), c_name(arg.name))
+    return t % (to_c(arg.name), c_name(arg.name, prefix))
 
 
-def c_if_flag(o):
+def c_if_flag(o, prefix=''):
     t = """ else if (!strcmp(option->o%s, %s)) {
             args->%s = option->value;
         }"""
     return t % (('long' if o.long else 'short'),
                 to_c(o.long or o.short),
-                c_name(o.long or o.short))
+                c_name(o.long or o.short, prefix))
 
 
-def c_if_option(o):
+def c_if_option(o, prefix=''):
     t = """ else if (!strcmp(option->o%s, %s)) {
             if (option->argument)
                 args->%s = option->argument;
         }"""
     return t % (('long' if o.long else 'short'),
                 to_c(o.long or o.short),
-                c_name(o.long or o.short))
+                c_name(o.long or o.short, prefix))
 
 
 def parse_leafs(pattern, all_options):
@@ -157,23 +163,25 @@ if __name__ == '__main__':
     if isinstance(usage, list):
         raise docopt.DocoptLanguageError(''.join(usage))
 
+    prefix = args['--prefix'] or ''
+
     all_options = docopt.parse_defaults(doc)
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
-    t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
+    t_commands = ';\n    '.join('int %s' % c_name(cmd.name, prefix)
                                 for cmd in commands)
     t_commands = (('\n    /* commands */\n    ' + t_commands + ';')
                   if t_commands != '' else '')
-    t_arguments = ';\n    '.join('char *%s' % c_name(arg.name)
+    t_arguments = ';\n    '.join('char *%s' % c_name(arg.name, prefix)
                                  for arg in arguments)
     t_arguments = (('\n    /* arguments */\n    ' + t_arguments + ';')
                    if t_arguments != '' else '')
-    t_flags = ';\n    '.join('int %s' % c_name(flag.long or flag.short)
+    t_flags = ';\n    '.join('int %s' % c_name(flag.long or flag.short, prefix)
                              for flag in flags)
     t_flags = (('\n    /* options without arguments */\n    ' + t_flags + ';')
                if t_flags != '' else '')
-    t_options = ';\n    '.join('char *%s' % c_name(opt.long or opt.short)
+    t_options = ';\n    '.join('char *%s' % c_name(opt.long or opt.short, prefix)
                                for opt in options)
     t_options = (('\n    /* options with arguments */\n    ' + t_options + ';')
                  if t_options != '' else '')
@@ -189,13 +197,13 @@ if __name__ == '__main__':
     t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
     t_elems_n = ', '.join([str(len(l))
                            for l in [commands, arguments, (flags + options)]])
-    t_if_command = ' else '.join(c_if_command(command) for command in commands)
+    t_if_command = ' else '.join(c_if_command(command, prefix) for command in commands)
     t_if_command = ('\n        ' + t_if_command) if t_if_command != '' else ''
-    t_if_argument = ' else '.join(c_if_argument(arg) for arg in arguments)
+    t_if_argument = ' else '.join(c_if_argument(arg, prefix) for arg in arguments)
     t_if_argument = (('\n        ' + t_if_argument)
                      if t_if_argument != '' else '')
-    t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
-    t_if_option = ''.join(c_if_option(opt) for opt in options)
+    t_if_flag = ''.join(c_if_flag(flag, prefix) for flag in flags)
+    t_if_option = ''.join(c_if_option(opt, prefix) for opt in options)
 
     out = Template(args['--template']).safe_substitute(
             commands=t_commands,
