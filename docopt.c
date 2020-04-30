@@ -12,7 +12,7 @@
 #endif
 
 
-typedef struct {
+struct DocoptArgs {
     /* commands */
     size_t create;
     size_t mine;
@@ -35,7 +35,7 @@ typedef struct {
     /* special */
     const char *usage_pattern;
     const char *help_message;
-} DocoptArgs;
+};
 
 const char help_message[] =
 "Naval Fate.\n"
@@ -66,48 +66,48 @@ const char usage_pattern[] =
 "  naval_fate --help\n"
 "  naval_fate --version";
 
-typedef struct {
+struct Command {
     const char *name;
     bool value;
-} Command;
+};
 
-typedef struct {
+struct Argument {
     const char *name;
     char *value;
     char **array;
-} Argument;
+};
 
-typedef struct {
+struct Option {
     const char *oshort;
     const char *olong;
     bool argcount;
     bool value;
     char *argument;
-} Option;
+};
 
-typedef struct {
+struct Elements {
     size_t n_commands;
     size_t n_arguments;
     size_t n_options;
-    Command *commands;
-    Argument *arguments;
-    Option *options;
-} Elements;
+    struct Command *commands;
+    struct Argument *arguments;
+    struct Option *options;
+};
 
 
 /*
  * Tokens object
  */
 
-typedef struct Tokens {
+struct Tokens {
     size_t argc;
     char **argv;
     size_t i;
     char *current;
-} Tokens;
+};
 
-Tokens tokens_new(size_t argc, char **argv) {
-    Tokens ts = {argc, argv, 0, argv[0]};
+Tokens tokens_new(int argc, char **argv) {
+    struct Tokens ts = {argc, argv, 0, argv[0]};
     return ts;
 }
 
@@ -126,7 +126,7 @@ Tokens* tokens_move(Tokens *ts) {
  * ARGV parsing functions
  */
 
-size_t parse_doubledash(Tokens *ts, Elements *elements) {
+size_t parse_doubledash(struct Tokens *ts, struct Elements *elements) {
     //size_t n_commands = elements->n_commands;
     //size_t n_arguments = elements->n_arguments;
     //Command *commands = elements->commands;
@@ -137,13 +137,13 @@ size_t parse_doubledash(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-size_t parse_long(Tokens *ts, Elements *elements) {
+size_t parse_long(struct Tokens *ts, struct Elements *elements) {
     size_t i;
     size_t len_prefix;
     size_t n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
-    Option *option;
-    Option *options = elements->options;
+    struct Option *option;
+    struct Option *options = elements->options;
 
     len_prefix = (eq-(ts->current))/sizeof(char);
     for (i=0; i < n_options; i++) {
@@ -178,12 +178,12 @@ size_t parse_long(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-size_t parse_shorts(Tokens *ts, Elements *elements) {
+size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
     char *raw;
     size_t i;
     size_t n_options = elements->n_options;
-    Option *option;
-    Option *options = elements->options;
+    struct Option *option;
+    struct Option *options = elements->options;
 
     raw = &ts->current[1];
     tokens_move(ts);
@@ -217,12 +217,12 @@ size_t parse_shorts(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-size_t parse_argcmd(Tokens *ts, Elements *elements) {
+size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     size_t i;
     size_t n_commands = elements->n_commands;
     //size_t n_arguments = elements->n_arguments;
-    Command *command;
-    Command *commands = elements->commands;
+    struct Command *command;
+    struct Command *commands = elements->commands;
     //Argument *arguments = elements->arguments;
 
     for (i=0; i < n_commands; i++) {
@@ -244,7 +244,7 @@ size_t parse_argcmd(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-size_t parse_args(Tokens *ts, Elements *elements) {
+size_t parse_args(struct Tokens *ts, struct Elements *elements) {
     size_t ret;
 
     while (ts->current != NULL) {
@@ -262,11 +262,11 @@ size_t parse_args(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-size_t elems_to_args(Elements *elements, DocoptArgs *args, bool help,
-                  const char *version){
-    Command *command;
-    Argument *argument;
-    Option *option;
+size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const bool help,
+                     const char *version){
+    struct Command *command;
+    struct Argument *argument;
+    struct Option *option;
     size_t i;
 
     // fix gcc-related compiler warnings (unused)
@@ -334,13 +334,13 @@ size_t elems_to_args(Elements *elements, DocoptArgs *args, bool help,
  * Main docopt function
  */
 
-DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *version) {
-    DocoptArgs args = {
+struct DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *version) {
+    struct DocoptArgs args = {
         0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
         usage_pattern, help_message
     };
-    Tokens ts;
-    Command commands[] = {
+    struct Tokens ts;
+    struct Command commands[] = {
         {"create", 0},
         {"mine", 0},
         {"move", 0},
@@ -349,19 +349,19 @@ DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *version) {
         {"ship", 0},
         {"shoot", 0}
     };
-    Argument arguments[] = {
+    struct Argument arguments[] = {
         {"<name>", NULL, NULL},
         {"<x>", NULL, NULL},
         {"<y>", NULL, NULL}
     };
-    Option options[] = {
+    struct Option options[] = {
         {NULL, "--drifting", 0, 0, NULL},
         {"-h", "--help", 0, 0, NULL},
         {NULL, "--moored", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
         {NULL, "--speed", 1, 0, NULL}
     };
-    Elements elements = {7, 3, 5, commands, arguments, options};
+    struct Elements elements = {7, 3, 5, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

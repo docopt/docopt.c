@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-    DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
+    struct DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
 
     printf("Commands\n");
     printf("    mine == %s\n", args.mine ? "true" : "false");

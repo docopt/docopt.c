@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
 
 # Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
 # (see LICENSE-MIT file for copying)
@@ -145,6 +146,9 @@ if __name__ == '__main__':
         if args['--template'] is None:
             args['--template'] = os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), "template.c")
+        if args['--template-header'] is None:
+            args['--template-header'] = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "template.h")
         with open(args['--template'], 'r') as f:
             args['--template'] = f.read()
     except IOError as e:
@@ -197,7 +201,7 @@ if __name__ == '__main__':
     t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
     t_if_option = ''.join(c_if_option(opt) for opt in options)
 
-    out = Template(args['--template']).safe_substitute(
+    template_out = Template(args['--template']).safe_substitute(
             commands=t_commands,
             arguments=t_arguments,
             flags=t_flags,
@@ -214,11 +218,37 @@ if __name__ == '__main__':
             elems_opts=t_elems_opts,
             elems_n=t_elems_n)
 
+    template_header_out = Template(args['--template-header']).safe_substitute(
+        commands=t_commands,
+        arguments=t_arguments,
+        flags=t_flags,
+        options=t_options,
+        help_message=to_c(doc),
+        usage_pattern=to_c(usage),
+        if_flag=t_if_flag,
+        if_option=t_if_option,
+        if_command=t_if_command,
+        if_argument=t_if_argument,
+        defaults=t_defaults,
+        elems_cmds=t_elems_cmds,
+        elems_args=t_elems_args,
+        elems_opts=t_elems_opts,
+        elems_n=t_elems_n)
+
     if args['--output-name'] is None:
-        print(out.strip() + '\n')
+        print(template_out.strip() + '\n')
     else:
         try:
+            if args['--output-name'].endswith('.c'):
+                header_output_name = args['--output-name'][:len('.c')] + '.h'
+            else:
+                args['--output-name'] = args['--output-name'] + '.h'
+                header_output_name = args['--output-name'] + '.c'
             with open(args['--output-name'], 'w') as f:
-                f.write(out.strip() + '\n')
+                f.write(template_out.strip() + '\n')
+
+            with open(header_output_name, 'w') as f:
+                f.write(template_header_out.strip() + '\n')
+
         except IOError as e:
             sys.exit(str(e))
