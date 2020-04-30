@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "docopt.c"
 
 int main(int argc, char *argv[])
@@ -22,5 +23,6 @@ int main(int argc, char *argv[])
     printf("    --version == %s\n", args.version ? "true" : "false");
     printf("Options\n");
     printf("    --speed == %s\n", args.speed);
-    return 0;
+
+    return EXIT_SUCCESS;
 }

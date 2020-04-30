@@ -6,7 +6,7 @@
   *     char *s = "foo bar";
   *     logs(s); // will print `[main:24] s == "foo bar"`
   *
-  *     int i = NULL;
+  *     size_t i = NULL;
   *     logi(i); // will print `[main:27] i == 0`
   *
   *     logb(i == NULL); // will print `[main:29] (i == NULL) == true`
@@ -15,11 +15,11 @@
 #ifndef LOG_H
 #define LOG_H
 
-// int
+// size_t
 #define logi(value) \
     printf("[%s():%d] " #value " == %i \n", __func__, __LINE__, value)
 
-// int
+// size_t
 #define logd(value) \
     printf("[%s():%d] " #value " == %d \n", __func__, __LINE__, value)
 
@@ -72,8 +72,8 @@
 #define log(format, value) \
     printf("\n[%s:%d] " #value " == " format " \n", __func__, __LINE__, value)
 
-#define logd(value) log("%d", value) // int
-#define logi(value) log("%i", value) // int
+#define logd(value) log("%d", value) // size_t
+#define logi(value) log("%i", value) // size_t
 #define logu(value) log("%u", value) // unsigned
 #define logf(value) log("%f", value) // double, fixed-point notation
 #define loge(value) log("%e", value) // double, standard form

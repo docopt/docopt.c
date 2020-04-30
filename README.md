@@ -10,12 +10,12 @@ Note, *at this point the code generator handles only options*
 Naval Fate.
 
 Usage:
-  naval_fate.py ship create <name>...
-  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]
-  naval_fate.py ship shoot <x> <y>
-  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]
-  naval_fate.py --help
-  naval_fate.py --version
+  naval_fate ship create <name>...
+  naval_fate ship <name> move <x> <y> [--speed=<kn>]
+  naval_fate ship shoot <x> <y>
+  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]
+  naval_fate --help
+  naval_fate --version
 
 Options:
   -h --help     Show this screen.
@@ -40,6 +40,7 @@ $ cat example.docopt | python docopt_c.py > docopt.c
 ### Step 3. Include the generated `docopt.c` into your program
 
 ```c
+#include <stdlib.h>
 #include "docopt.c"
 
 int main(int argc, char *argv[])
@@ -64,7 +65,8 @@ int main(int argc, char *argv[])
     printf("    --version == %s\n", args.version ? "true" : "false");
     printf("Options\n");
     printf("    --speed == %s\n", args.speed);
-    return 0;
+
+    return EXIT_SUCCESS;
 }
 ```
 

@@ -10,7 +10,7 @@
   * TokenStream
   */
 
-int test_tokens(void) {
+size_t test_tokens(void) {
     char *argv[] = {"prog", "-o", "12"};
     Tokens ts = tokens_new(3, argv);
 
@@ -28,8 +28,8 @@ int test_tokens(void) {
   * parse_shorts
   */
 
-int test_parse_shorts_1(void) {
-    int ret;
+size_t test_parse_shorts_1(void) {
+    size_t ret;
     char *argv[] = {"-a"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -50,8 +50,8 @@ int test_parse_shorts_1(void) {
     return 0;
 }
 
-int test_parse_shorts_2(void) {
-    int ret;
+size_t test_parse_shorts_2(void) {
+    size_t ret;
     char *argv[] = {"-ab"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -73,8 +73,8 @@ int test_parse_shorts_2(void) {
     return 0;
 }
 
-int test_parse_shorts_3(void) {
-    int ret;
+size_t test_parse_shorts_3(void) {
+    size_t ret;
     char *argv[] = {"-b"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -96,8 +96,8 @@ int test_parse_shorts_3(void) {
     return 0;
 }
 
-int test_parse_shorts_4(void) {
-    int ret;
+size_t test_parse_shorts_4(void) {
+    size_t ret;
     char *argv[] = {"-aARG"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -116,8 +116,8 @@ int test_parse_shorts_4(void) {
     return 0;
 }
 
-int test_parse_shorts_5(void) {
-    int ret;
+size_t test_parse_shorts_5(void) {
+    size_t ret;
     char *argv[] = {"-a", "ARG"};
     Tokens ts = tokens_new(2, argv);
     Option options[] = {
@@ -140,8 +140,8 @@ int test_parse_shorts_5(void) {
   * parse_long
   */
 
-int test_parse_long_1(void) {
-    int ret;
+size_t test_parse_long_1(void) {
+    size_t ret;
     char *argv[] = {"--all"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -162,8 +162,8 @@ int test_parse_long_1(void) {
     return 0;
 }
 
-int test_parse_long_2(void) {
-    int ret;
+size_t test_parse_long_2(void) {
+    size_t ret;
     char *argv[] = {"--all"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -192,8 +192,8 @@ int test_parse_long_2(void) {
     return 0;
 }
 
-int test_parse_long_3(void) {
-    int ret;
+size_t test_parse_long_3(void) {
+    size_t ret;
     char *argv[] = {"--all=ARG"};
     Tokens ts = tokens_new(1, argv);
     Option options[] = {
@@ -214,8 +214,8 @@ int test_parse_long_3(void) {
     return 0;
 }
 
-int test_parse_long_4(void) {
-    int ret;
+size_t test_parse_long_4(void) {
+    size_t ret;
     char *argv[] = {"--all", "ARG"};
     Tokens ts = tokens_new(2, argv);
     Option options[] = {
@@ -240,7 +240,7 @@ int test_parse_long_4(void) {
   * parse_args
   */
 
-int test_parse_args_1(void) {
+size_t test_parse_args_1(void) {
     Command commands[] = {};
     Argument arguments[] = {};
     Option options[] = {
@@ -251,7 +251,7 @@ int test_parse_args_1(void) {
     Elements elements = {0, 0, 3, commands, arguments, options};
     char *argv[] = {"--all", "-b", "ARG"};
     Tokens ts = tokens_new(3, argv);
-    int ret;
+    size_t ret;
 
     ret = parse_args(&ts, &elements);
     assert(!ret);
@@ -265,7 +265,7 @@ int test_parse_args_1(void) {
     return 0;
 }
 
-int test_parse_args_2(void) {
+size_t test_parse_args_2(void) {
     Command commands[] = {};
     Argument arguments[] = {};
     Option options[] = {
@@ -276,7 +276,7 @@ int test_parse_args_2(void) {
     Elements elements = {0, 0, 3, commands, arguments, options};
     char *argv[] = {"ARG", "-Wall"};
     Tokens ts = tokens_new(2, argv);
-    int ret;
+    size_t ret;
 
     ret = parse_args(&ts, &elements);
     assert(!ret);
@@ -291,7 +291,7 @@ int test_parse_args_2(void) {
 }
 
 int main(int argc, char *argv[]) {
-    int (*functions[])(void) = {test_tokens,
+    size_t (*functions[])(void) = {test_tokens,
                             test_parse_shorts_1,
                             test_parse_shorts_2,
                             test_parse_shorts_3,
@@ -306,9 +306,9 @@ int main(int argc, char *argv[]) {
                             test_parse_args_1,
                             test_parse_args_2,
                             NULL};
-    int (*function)(void);
-    int i = -1;
-    int ret;
+    size_t (*function)(void);
+    size_t i = -1;
+    size_t ret;
 
     for (function = functions[++i];
          function != NULL;

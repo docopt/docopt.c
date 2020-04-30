@@ -1,33 +1,35 @@
 #ifdef __cplusplus
 #include <cstdio>
 #include <cstdlib>
+#include <cstddef>
 #include <cstring>
 #else
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <string.h>
 #endif
 
 
 typedef struct {
     /* commands */
-    int create;
-    int mine;
-    int move;
-    int remove;
-    int set;
-    int ship;
-    int shoot;
+    size_t create;
+    size_t mine;
+    size_t move;
+    size_t remove;
+    size_t set;
+    size_t ship;
+    size_t shoot;
     /* arguments */
     char *name;
     char *x;
     char *y;
     /* options without arguments */
-    int drifting;
-    int help;
-    int moored;
-    int version;
+    size_t drifting;
+    size_t help;
+    size_t moored;
+    size_t version;
     /* options with arguments */
     char *speed;
     /* special */
@@ -39,12 +41,12 @@ const char help_message[] =
 "Naval Fate.\n"
 "\n"
 "Usage:\n"
-"  naval_fate.py ship create <name>...\n"
-"  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]\n"
-"  naval_fate.py ship shoot <x> <y>\n"
-"  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]\n"
-"  naval_fate.py --help\n"
-"  naval_fate.py --version\n"
+"  naval_fate ship create <name>...\n"
+"  naval_fate ship <name> move <x> <y> [--speed=<kn>]\n"
+"  naval_fate ship shoot <x> <y>\n"
+"  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]\n"
+"  naval_fate --help\n"
+"  naval_fate --version\n"
 "\n"
 "Options:\n"
 "  -h --help     Show this screen.\n"
@@ -57,12 +59,12 @@ const char help_message[] =
 
 const char usage_pattern[] =
 "Usage:\n"
-"  naval_fate.py ship create <name>...\n"
-"  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]\n"
-"  naval_fate.py ship shoot <x> <y>\n"
-"  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]\n"
-"  naval_fate.py --help\n"
-"  naval_fate.py --version";
+"  naval_fate ship create <name>...\n"
+"  naval_fate ship <name> move <x> <y> [--speed=<kn>]\n"
+"  naval_fate ship shoot <x> <y>\n"
+"  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]\n"
+"  naval_fate --help\n"
+"  naval_fate --version";
 
 typedef struct {
     const char *name;
@@ -84,9 +86,9 @@ typedef struct {
 } Option;
 
 typedef struct {
-    int n_commands;
-    int n_arguments;
-    int n_options;
+    size_t n_commands;
+    size_t n_arguments;
+    size_t n_options;
     Command *commands;
     Argument *arguments;
     Option *options;
@@ -98,13 +100,13 @@ typedef struct {
  */
 
 typedef struct Tokens {
-    int argc;
+    size_t argc;
     char **argv;
-    int i;
+    size_t i;
     char *current;
 } Tokens;
 
-Tokens tokens_new(int argc, char **argv) {
+Tokens tokens_new(size_t argc, char **argv) {
     Tokens ts = {argc, argv, 0, argv[0]};
     return ts;
 }
@@ -124,9 +126,9 @@ Tokens* tokens_move(Tokens *ts) {
  * ARGV parsing functions
  */
 
-int parse_doubledash(Tokens *ts, Elements *elements) {
-    //int n_commands = elements->n_commands;
-    //int n_arguments = elements->n_arguments;
+size_t parse_doubledash(Tokens *ts, Elements *elements) {
+    //size_t n_commands = elements->n_commands;
+    //size_t n_arguments = elements->n_arguments;
     //Command *commands = elements->commands;
     //Argument *arguments = elements->arguments;
 
@@ -135,10 +137,10 @@ int parse_doubledash(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-int parse_long(Tokens *ts, Elements *elements) {
-    int i;
-    int len_prefix;
-    int n_options = elements->n_options;
+size_t parse_long(Tokens *ts, Elements *elements) {
+    size_t i;
+    size_t len_prefix;
+    size_t n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
     Option *option;
     Option *options = elements->options;
@@ -176,10 +178,10 @@ int parse_long(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-int parse_shorts(Tokens *ts, Elements *elements) {
+size_t parse_shorts(Tokens *ts, Elements *elements) {
     char *raw;
-    int i;
-    int n_options = elements->n_options;
+    size_t i;
+    size_t n_options = elements->n_options;
     Option *option;
     Option *options = elements->options;
 
@@ -215,10 +217,10 @@ int parse_shorts(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-int parse_argcmd(Tokens *ts, Elements *elements) {
-    int i;
-    int n_commands = elements->n_commands;
-    //int n_arguments = elements->n_arguments;
+size_t parse_argcmd(Tokens *ts, Elements *elements) {
+    size_t i;
+    size_t n_commands = elements->n_commands;
+    //size_t n_arguments = elements->n_arguments;
     Command *command;
     Command *commands = elements->commands;
     //Argument *arguments = elements->arguments;
@@ -242,8 +244,8 @@ int parse_argcmd(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-int parse_args(Tokens *ts, Elements *elements) {
-    int ret;
+size_t parse_args(Tokens *ts, Elements *elements) {
+    size_t ret;
 
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
@@ -260,12 +262,16 @@ int parse_args(Tokens *ts, Elements *elements) {
     return 0;
 }
 
-int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
+size_t elems_to_args(Elements *elements, DocoptArgs *args, bool help,
                   const char *version){
     Command *command;
     Argument *argument;
     Option *option;
-    int i;
+    size_t i;
+
+    // fix gcc-related compiler warnings (unused)
+    (void)command;
+    (void)argument;
 
     /* options */
     for (i=0; i < elements->n_options; i++) {
@@ -328,7 +334,7 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
  * Main docopt function
  */
 
-DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
+DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
         0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
         usage_pattern, help_message
@@ -364,4 +370,3 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         exit(EXIT_SUCCESS);
     return args;
 }
-

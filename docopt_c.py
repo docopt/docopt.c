@@ -36,16 +36,16 @@ import numbers
 
 def to_c(s):
     if type(s) is str:
-        return ('"%s"' % s.replace('\\', r'\\')\
-                          .replace('"', r'\"')\
+        return ('"%s"' % s.replace('\\', r'\\')
+                          .replace('"', r'\"')
                           .replace('\n', '\\n"\n"'))
-    if s is True:
+    elif s is True:
         return '1'
-    if s is False:
+    elif s is False:
         return '0'
-    if isinstance(s, numbers.Number):
+    elif isinstance(s, numbers.Number):
         return str(s)
-    if s is None:
+    elif s is None:
         return 'NULL'
     raise ValueError("can't convert to c type: %r" % s)
 
@@ -146,7 +146,7 @@ if __name__ == '__main__':
             args['--template'] = os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), "template.c")
         with open(args['--template'], 'r') as f:
-                args['--template'] = f.read()
+            args['--template'] = f.read()
     except IOError as e:
         sys.exit(e)
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
-    t_commands = ';\n    '.join('int %s' % c_name(cmd.name)
+    t_commands = ';\n    '.join('size_t %s' % c_name(cmd.name)
                                 for cmd in commands)
     t_commands = (('\n    /* commands */\n    ' + t_commands + ';')
                   if t_commands != '' else '')
@@ -169,7 +169,7 @@ if __name__ == '__main__':
                                  for arg in arguments)
     t_arguments = (('\n    /* arguments */\n    ' + t_arguments + ';')
                    if t_arguments != '' else '')
-    t_flags = ';\n    '.join('int %s' % c_name(flag.long or flag.short)
+    t_flags = ';\n    '.join('size_t %s' % c_name(flag.long or flag.short)
                              for flag in flags)
     t_flags = (('\n    /* options without arguments */\n    ' + t_flags + ';')
                if t_flags != '' else '')

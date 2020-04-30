@@ -11,7 +11,7 @@ import re
 
 
 __all__ = ['docopt']
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 
 
 class DocoptLanguageError(Exception):
@@ -454,7 +454,7 @@ def parse_defaults(doc):
     for s in parse_section('options:', doc):
         # FIXME corner case "bla: options: --foo"
         _, _, s = s.partition(':')  # get rid of "options:"
-        split = re.split('\n *(-\S+?)', '\n' + s)[1:]
+        split = re.split('\n[ \t]*(-\S+?)', '\n' + s)[1:]
         split = [s1 + s2 for s1, s2 in zip(split[::2], split[1::2])]
         options = [Option.parse(s) for s in split if s.startswith('-')]
         defaults += options
@@ -562,7 +562,7 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
     options = parse_defaults(doc)
     pattern = parse_pattern(formal_usage(DocoptExit.usage), options)
     # [default] syntax for argument is disabled
-    #for a in pattern.flat(Argument):
+    # for a in pattern.flat(Argument):
     #    same_name = [d for d in arguments if d.name == a.name]
     #    if same_name:
     #        a.value = same_name[0].value
@@ -571,7 +571,7 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
     for options_shortcut in pattern.flat(OptionsShortcut):
         doc_options = parse_defaults(doc)
         options_shortcut.children = list(set(doc_options) - pattern_options)
-        #if any_options:
+        # if any_options:
         #    options_shortcut.children += [Option(o.short, o.long, o.argcount)
         #                    for o in argv if type(o) is Option]
     extras(help, version, argv, doc)
