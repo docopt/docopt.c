@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-from __future__ import print_function
-
 # Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
 # (see LICENSE-MIT file for copying)
 
@@ -18,6 +16,8 @@ Options:
                 If not present, the produced code is printed to stdout.
   -t, --template=<template>
                 Filename used to read a C template.
+  -p, --template-header=<template-header>
+                Filename used to read a C template header (prototypes, structs).
   -h,--help     Show this help message and exit.
 
 Arguments:
@@ -25,6 +25,7 @@ Arguments:
 
 """
 
+from __future__ import print_function
 
 import sys
 import os.path
@@ -126,12 +127,13 @@ def parse_leafs(pattern, all_options):
     else:
         option_leafs = [leaf for leaf in leafs if type(leaf) == docopt.Option]
     flags = [leaf for leaf in option_leafs if leaf.argcount == 0]
-    options = [leaf for leaf in option_leafs if  leaf.argcount > 0]
+    options = [leaf for leaf in option_leafs if leaf.argcount > 0]
     leafs = [i for sl in [commands, arguments, flags, options] for i in sl]
     return leafs, commands, arguments, flags, options
 
 
 if __name__ == '__main__':
+    assert __doc__ is not None
     args = docopt.docopt(__doc__)
 
     try:
@@ -148,9 +150,11 @@ if __name__ == '__main__':
                     os.path.dirname(os.path.realpath(__file__)), "template.c")
         if args['--template-header'] is None:
             args['--template-header'] = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "template.h")
-        with open(args['--template'], 'r') as f:
+                os.path.dirname(args['--template']), "template.h")
+        with open(args['--template'], 'rt') as f:
             args['--template'] = f.read()
+        with open(args['--template-header'], 'rt') as f:
+            args['--template-header'] = f.read()
     except IOError as e:
         sys.exit(e)
 
@@ -201,6 +205,13 @@ if __name__ == '__main__':
     t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
     t_if_option = ''.join(c_if_option(opt) for opt in options)
 
+    if args['--output-name'].endswith('.c'):
+        header_output_name = os.path.splitext(args['--output-name'])[0] + '.h'
+    else:
+        args['--output-name'] = args['--output-name'] + '.h'
+        header_output_name = args['--output-name'] + '.c'
+
+    header_name = os.path.basename(header_output_name)
     template_out = Template(args['--template']).safe_substitute(
             commands=t_commands,
             arguments=t_arguments,
@@ -216,7 +227,8 @@ if __name__ == '__main__':
             elems_cmds=t_elems_cmds,
             elems_args=t_elems_args,
             elems_opts=t_elems_opts,
-            elems_n=t_elems_n)
+            elems_n=t_elems_n,
+            header_name=header_name)
 
     template_header_out = Template(args['--template-header']).safe_substitute(
         commands=t_commands,
@@ -224,26 +236,12 @@ if __name__ == '__main__':
         flags=t_flags,
         options=t_options,
         help_message=to_c(doc),
-        usage_pattern=to_c(usage),
-        if_flag=t_if_flag,
-        if_option=t_if_option,
-        if_command=t_if_command,
-        if_argument=t_if_argument,
-        defaults=t_defaults,
-        elems_cmds=t_elems_cmds,
-        elems_args=t_elems_args,
-        elems_opts=t_elems_opts,
-        elems_n=t_elems_n)
+        usage_pattern=to_c(usage)).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
 
     if args['--output-name'] is None:
         print(template_out.strip() + '\n')
     else:
         try:
-            if args['--output-name'].endswith('.c'):
-                header_output_name = args['--output-name'][:len('.c')] + '.h'
-            else:
-                args['--output-name'] = args['--output-name'] + '.h'
-                header_output_name = args['--output-name'] + '.c'
             with open(args['--output-name'], 'w') as f:
                 f.write(template_out.strip() + '\n')
 

@@ -1,3 +1,6 @@
+#ifndef DOCOPT_$header_no_ext_H
+#define DOCOPT_$header_no_ext_H
+
 #include <stddef.h>
 
 struct DocoptArgs {$commands$arguments$flags$options
@@ -45,3 +48,7 @@ struct Tokens {
     size_t i;
     char *current;
 };
+
+struct DocoptArgs docopt(size_t,char *[],bool,const char *);
+
+#endif
