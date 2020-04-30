@@ -132,6 +132,10 @@ def parse_leafs(pattern, all_options):
     return leafs, commands, arguments, flags, options
 
 
+def null_if_zero(s):
+    return 'NULL' if s is None or len(s) == 0 else s
+
+
 if __name__ == '__main__':
     assert __doc__ is not None
     args = docopt.docopt(__doc__)
@@ -213,10 +217,6 @@ if __name__ == '__main__':
 
     header_name = os.path.basename(header_output_name)
     template_out = Template(args['--template']).safe_substitute(
-            commands=t_commands,
-            arguments=t_arguments,
-            flags=t_flags,
-            options=t_options,
             help_message=to_c(doc),
             usage_pattern=to_c(usage),
             if_flag=t_if_flag,
@@ -224,9 +224,9 @@ if __name__ == '__main__':
             if_command=t_if_command,
             if_argument=t_if_argument,
             defaults=t_defaults,
-            elems_cmds=t_elems_cmds,
-            elems_args=t_elems_args,
-            elems_opts=t_elems_opts,
+            elems_cmds=null_if_zero(t_elems_cmds),
+            elems_args=null_if_zero(t_elems_args),
+            elems_opts=null_if_zero(t_elems_opts),
             elems_n=t_elems_n,
             header_name=header_name)
 
@@ -234,9 +234,7 @@ if __name__ == '__main__':
         commands=t_commands,
         arguments=t_arguments,
         flags=t_flags,
-        options=t_options,
-        help_message=to_c(doc),
-        usage_pattern=to_c(usage)).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
+        options=t_options).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
 
     if args['--output-name'] is None:
         print(template_out.strip() + '\n')
