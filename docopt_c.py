@@ -199,8 +199,12 @@ if __name__ == '__main__':
     t_elems_args = ('\n        ' + t_elems_args) if t_elems_args != '' else ''
     t_elems_opts = ',\n        '.join([c_option(o) for o in (flags + options)])
     t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
-    t_elems_n = ', '.join([str(len(l))
-                           for l in [commands, arguments, (flags + options)]])
+    t_elems_n_commands = str(len(commands))
+    t_elems_n_arguments = str(len(arguments))
+    t_elems_n_options = str(len(flags + options))
+    t_elems_n_cmds = str(len(commands))
+    # t_elems_n = ', '.join([str(len(l))
+    #                        for l in [commands, arguments, (flags + options)]])
     t_if_command = ' else '.join(c_if_command(command) for command in commands)
     t_if_command = ('\n        ' + t_if_command) if t_if_command != '' else ''
     t_if_argument = ' else '.join(c_if_argument(arg) for arg in arguments)
@@ -227,7 +231,9 @@ if __name__ == '__main__':
             elems_cmds=null_if_zero(t_elems_cmds),
             elems_args=null_if_zero(t_elems_args),
             elems_opts=null_if_zero(t_elems_opts),
-            elems_n=t_elems_n,
+            t_elems_n_commands=str(len(commands)),
+            t_elems_n_arguments=str(len(arguments)),
+            t_elems_n_options=str(len(flags + options)),
             header_name=header_name)
 
     template_header_out = Template(args['--template-header']).safe_substitute(
