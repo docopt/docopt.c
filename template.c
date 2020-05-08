@@ -46,9 +46,6 @@ struct Tokens {
     char *current;
 };
 
-const char help_message[] =
-$help_message;
-
 const char usage_pattern[] =
 $usage_pattern;
 
@@ -219,7 +216,7 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
     struct Command *command;
     struct Argument *argument;
     struct Option *option;
-    size_t i;
+    size_t i, j;
 
     /* fix gcc-related compiler warnings (unused) */
     (void)command;
@@ -229,11 +226,12 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
     for (i=0; i < elements->n_options; i++) {
         option = &elements->options[i];
         if (help && option->value && !strcmp(option->olong, "--help")) {
-            printf("%s", args->help_message);
+            for(j=0; j < $help_message_n; j++)
+                puts(args->help_message[j]);
             return 1;
         } else if (version && option->value &&
                    !strcmp(option->olong, "--version")) {
-            printf("%s\n", version);
+            puts(version);
             return 1;
         }$if_flag$if_option
     }
@@ -255,7 +253,8 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
 
 struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char *version) {
     struct DocoptArgs args = {$defaults
-        usage_pattern, help_message
+        usage_pattern,
+        $help_message
     };
     struct Tokens ts;
     struct Command commands[] = {$elems_cmds

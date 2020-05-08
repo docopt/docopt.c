@@ -6,7 +6,7 @@
 struct DocoptArgs {$commands$arguments$flags$options
     /* special */
     const char *usage_pattern;
-    const char *help_message;
+    const char *help_message[$help_message_n];
 };
 
 struct DocoptArgs docopt(size_t,char *[],bool,const char *);

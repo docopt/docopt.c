@@ -30,10 +30,19 @@ from __future__ import print_function
 import sys
 import os.path
 import re
+from types import NoneType
+
 import docopt
 from string import Template
 import textwrap
 import numbers
+
+
+def to_initalizer(s):
+    if isinstance(s, (str, NoneType, bool, numbers.Number)):
+        return to_c(s)
+
+    return '{' + ',\n'.join('{}"{}"'.format(' '*10, k) for k in s)[9:] + '}'
 
 
 def to_c(s):
@@ -220,8 +229,13 @@ if __name__ == '__main__':
         header_output_name = args['--output-name'] + '.c'
 
     header_name = os.path.basename(header_output_name)
+
+    doc = doc.split('\n')
+    doc_n = len(doc)
+
     template_out = Template(args['--template']).safe_substitute(
-            help_message=to_c(doc),
+            help_message=to_initalizer(doc),
+            help_message_n=doc_n,
             usage_pattern=to_c(usage),
             if_flag=t_if_flag,
             if_option=t_if_option,
@@ -240,7 +254,8 @@ if __name__ == '__main__':
         commands=t_commands,
         arguments=t_arguments,
         flags=t_flags,
-        options=t_options).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
+        options=t_options,
+        help_message_n=doc_n).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
 
     if args['--output-name'] is None:
         print(template_out.strip() + '\n')
