@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 # Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>
 # (see LICENSE-MIT file for copying)
@@ -27,125 +27,137 @@ Arguments:
 
 from __future__ import print_function
 
-import sys
+import numbers
 import os.path
 import re
-from types import NoneType
+import sys
+import textwrap
+from itertools import count
+from string import Template
 
 import docopt
-from string import Template
-import textwrap
-import numbers
 
 
-def to_initalizer(s):
-    if isinstance(s, (str, NoneType, bool, numbers.Number)):
-        return to_c(s)
+def to_initializer(val):
+    if isinstance(val, (str, type(None), bool, numbers.Number)):
+        return to_c(val)
 
-    return '{' + ',\n'.join('{}"{}"'.format(' '*10, k) for k in s)[9:] + '}'
+    return '{{{}}}'.format(',\n'.join('{}"{}"'.format(' ' * 10, k) for k in val)[9:])
 
 
-def to_c(s):
-    if type(s) is str:
-        return ('"%s"' % s.replace('\\', r'\\')
-                          .replace('"', r'\"')
-                          .replace('\n', '\\n"\n"'))
-    elif s is True:
+def to_c(val):
+    if type(val) is str:
+        return '"{}"'.format(val
+                             .replace('\\', r'\\')
+                             .replace('"', r'\"')
+                             .replace('\n', '\\n"\n"')
+                             )
+    elif val is True:
         return '1'
-    elif s is False:
+    elif val is False:
         return '0'
-    elif isinstance(s, numbers.Number):
-        return str(s)
-    elif s is None:
+    elif isinstance(val, numbers.Number):
+        return str(val)
+    elif val is None:
         return 'NULL'
-    raise ValueError("can't convert to c type: %r" % s)
+    raise ValueError("can't convert to c type: {!r}".format(val))
 
 
-def c_command(o):
-    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value))
+def c_command(obj):
+    return '{{!s}}'.format(', '.join(to_c(v)
+                                     for v in (obj.name, obj.value)))
 
 
-def c_argument(o):
-    return '{%s}' % ', '.join(to_c(v) for v in (o.name, o.value, None))
+def c_argument(obj):
+    return '{{!s}}'.format(', '.join(to_c(v)
+                                     for v in (obj.name, obj.value, None)))
 
 
-def c_option(o):
-    return '{%s}' % ', '.join(to_c(v) for v in (o.short, o.long, o.argcount,
-                                                False, None))
+def c_option(obj):
+    return '{{!s}}'.format(', '.join(to_c(v)
+                                     for v in (obj.short, obj.long, obj.argcount,
+                                               False, None)))
 
 
 def c_name(s):
     return ''.join(c if c.isalnum() else '_' for c in s).strip('_')
 
 
+_indent = ' ' * 8
+_count = count(-1, 1)
+
+
 def c_if_command(cmd):
-    t = """if (!strcmp(command->name, %s)) {
-            args->%s = command->value;
-        }"""
-    return t % (to_c(cmd.name), c_name(cmd.name))
+    return '\n{indent}if (strcmp(command->name, {val!s}) == 0) {{\n' \
+           '{indent}    args->{prop!s} = command->value;\n' \
+           '{indent}}}\n'.format(indent=_indent,
+                                 val=to_c(cmd.name),
+                                 prop=c_name(cmd.name))
 
 
 def c_if_argument(arg):
-    t = """if (!strcmp(argument->name, %s)) {
-            args->%s = argument->value;
-        }"""
-    return t % (to_c(arg.name), c_name(arg.name))
+    return '\n{indent}if (strcmp(argument->name, {val!s}) == 0) {{\n' \
+           '{indent}    args->{prop!s} = argument->value;\n' \
+           '{indent}}}\n'.format(indent=_indent,
+                                 val=to_c(arg.name),
+                                 prop=c_name(arg.name))
 
 
-def c_if_flag(o):
-    t = """ else if (!strcmp(option->o%s, %s)) {
-            args->%s = option->value;
-        }"""
-    return t % (('long' if o.long else 'short'),
-                to_c(o.long or o.short),
-                c_name(o.long or o.short))
+def c_if_flag(obj):
+    return '{maybe_nl}else if (strcmp(option->obj{typ!s}, {val!s}) == 0) {{\n' \
+           '{indent}    args->{prop!s} = option->value;\n' \
+           '{indent}}}\n'.format(maybe_nl=_indent if next(_count) > 0 else '\n{indent}'.format(indent=_indent),
+                                 indent=_indent,
+                                 typ=('long' if obj.long else 'short'),
+                                 val=to_c(obj.long or obj.short),
+                                 prop=c_name(obj.long or obj.short))
 
 
-def c_if_option(o):
-    t = """ else if (!strcmp(option->o%s, %s)) {
-            if (option->argument)
-                args->%s = option->argument;
-        }"""
-    return t % (('long' if o.long else 'short'),
-                to_c(o.long or o.short),
-                c_name(o.long or o.short))
+def c_if_option(obj):
+    return '{indent}else if (strcmp(option->obj{typ!s}, {val!s}) == 0) {{\n' \
+           '{indent}if (option->argument)\n' \
+           '{indent}    args->{prop!s} = option->argument;\n' \
+           '{indent}}}\n'.format(indent=_indent,
+                                 typ=('long' if obj.long else 'short'),
+                                 val=to_c(obj.long or obj.short),
+                                 prop=c_name(obj.long or obj.short))
 
 
 def parse_leafs(pattern, all_options):
     options_shortcut = False
-    leafs = []
+    leaves = []
     queue = [(0, pattern)]
     while queue:
         level, node = queue.pop(-1)  # depth-first search
         if not options_shortcut and type(node) == docopt.OptionsShortcut:
             options_shortcut = True
         elif hasattr(node, 'children'):
-            children = [((level + 1), child) for child in node.children]
+            children = [(level + 1, child) for child in node.children]
             children.reverse()
             queue.extend(children)
         else:
-            if node not in leafs:
-                leafs.append(node)
+            if node not in leaves:
+                leaves.append(node)
     sort_by_name = lambda e: e.name
-    leafs.sort(key=sort_by_name)
-    commands = [leaf for leaf in leafs if type(leaf) == docopt.Command]
-    arguments = [leaf for leaf in leafs if type(leaf) == docopt.Argument]
+    leaves.sort(key=sort_by_name)
+    commands = [leaf for leaf in leaves if type(leaf) == docopt.Command]
+    arguments = [leaf for leaf in leaves if type(leaf) == docopt.Argument]
     if options_shortcut:
         option_leafs = all_options
         option_leafs.sort(key=sort_by_name)
     else:
-        option_leafs = [leaf for leaf in leafs if type(leaf) == docopt.Option]
+        option_leafs = [leaf for leaf in leaves if type(leaf) == docopt.Option]
     flags = [leaf for leaf in option_leafs if leaf.argcount == 0]
     options = [leaf for leaf in option_leafs if leaf.argcount > 0]
-    leafs = [i for sl in [commands, arguments, flags, options] for i in sl]
-    return leafs, commands, arguments, flags, options
+    leaves = [i for sl in [commands, arguments, flags, options] for i in sl]
+    return leaves, commands, arguments, flags, options
 
 
 def null_if_zero(s):
     return 'NULL' if s is None or len(s) == 0 else s
 
 
-if __name__ == '__main__':
+def main():
     assert __doc__ is not None
     args = docopt.docopt(__doc__)
 
@@ -160,7 +172,7 @@ if __name__ == '__main__':
             args['<docopt>'] = sys.stdin.read()
         if args['--template'] is None:
             args['--template'] = os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), "template.c")
+                os.path.dirname(os.path.realpath(__file__)), "template.c")
         if args['--template-header'] is None:
             args['--template-header'] = os.path.join(
                 os.path.dirname(args['--template']), "template.h")
@@ -182,32 +194,32 @@ if __name__ == '__main__':
     pattern = docopt.parse_pattern(docopt.formal_usage(usage), all_options)
     leafs, commands, arguments, flags, options = parse_leafs(pattern, all_options)
 
-    t_commands = ';\n    '.join('size_t %s' % c_name(cmd.name)
+    t_commands = ';\n    '.join('size_t {!s}'.format(c_name(cmd.name))
                                 for cmd in commands)
-    t_commands = (('\n    /* commands */\n    ' + t_commands + ';')
+    t_commands = (('\n    /* commands */\n    {t_commands};'.format(t_commands=t_commands))
                   if t_commands != '' else '')
-    t_arguments = ';\n    '.join('char *%s' % c_name(arg.name)
+    t_arguments = ';\n    '.join('char *{!s}'.format(c_name(arg.name))
                                  for arg in arguments)
-    t_arguments = (('\n    /* arguments */\n    ' + t_arguments + ';')
+    t_arguments = (('\n    /* arguments */\n    {t_arguments};'.format(t_arguments=t_arguments))
                    if t_arguments != '' else '')
-    t_flags = ';\n    '.join('size_t %s' % c_name(flag.long or flag.short)
+    t_flags = ';\n    '.join('size_t {!s}'.format(c_name(flag.long or flag.short))
                              for flag in flags)
-    t_flags = (('\n    /* options without arguments */\n    ' + t_flags + ';')
+    t_flags = (('\n    /* options without arguments */\n    {t_flags};'.format(t_flags=t_flags))
                if t_flags != '' else '')
-    t_options = ';\n    '.join('char *%s' % c_name(opt.long or opt.short)
+    t_options = ';\n    '.join('char *{!s}'.format(c_name(opt.long or opt.short))
                                for opt in options)
-    t_options = (('\n    /* options with arguments */\n    ' + t_options + ';')
+    t_options = (('\n    /* options with arguments */\n    {t_options};'.format(t_options=t_options))
                  if t_options != '' else '')
     t_defaults = ', '.join(to_c(leaf.value) for leaf in leafs)
     t_defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', t_defaults)
     t_defaults = '\n        '.join(textwrap.wrap(t_defaults, 72))
-    t_defaults = ('\n        ' + t_defaults + ',') if t_defaults != '' else ''
-    t_elems_cmds = ',\n        '.join([c_command(cmd) for cmd in (commands)])
-    t_elems_cmds = ('\n        ' + t_elems_cmds) if t_elems_cmds != '' else ''
-    t_elems_args = ',\n        '.join([c_argument(arg) for arg in (arguments)])
-    t_elems_args = ('\n        ' + t_elems_args) if t_elems_args != '' else ''
+    t_defaults = ('\n        {t_defaults},'.format(t_defaults=t_defaults)) if t_defaults != '' else ''
+    t_elems_cmds = ',\n        '.join([c_command(cmd) for cmd in commands])
+    t_elems_cmds = ('\n        {t_elems_cmds}'.format(t_elems_cmds=t_elems_cmds)) if t_elems_cmds != '' else ''
+    t_elems_args = ',\n        '.join([c_argument(arg) for arg in arguments])
+    t_elems_args = ('\n        {t_elems_args}'.format(t_elems_args=t_elems_args)) if t_elems_args != '' else ''
     t_elems_opts = ',\n        '.join([c_option(o) for o in (flags + options)])
-    t_elems_opts = ('\n        ' + t_elems_opts) if t_elems_opts != '' else ''
+    t_elems_opts = ('\n        {t_elems_opts}'.format(t_elems_opts=t_elems_opts)) if t_elems_opts != '' else ''
     t_elems_n_commands = str(len(commands))
     t_elems_n_arguments = str(len(arguments))
     t_elems_n_options = str(len(flags + options))
@@ -215,12 +227,12 @@ if __name__ == '__main__':
     # t_elems_n = ', '.join([str(len(l))
     #                        for l in [commands, arguments, (flags + options)]])
     t_if_command = ' else '.join(c_if_command(command) for command in commands)
-    t_if_command = ('\n        ' + t_if_command) if t_if_command != '' else ''
+    t_if_command = ('\n        {t_if_command}'.format(t_if_command=t_if_command)) if t_if_command != '' else ''
     t_if_argument = ' else '.join(c_if_argument(arg) for arg in arguments)
-    t_if_argument = (('\n        ' + t_if_argument)
+    t_if_argument = (('\n        {t_if_argument}'.format(t_if_argument=t_if_argument))
                      if t_if_argument != '' else '')
     t_if_flag = ''.join(c_if_flag(flag) for flag in flags)
-    t_if_option = ''.join(c_if_option(opt) for opt in options)
+    t_if_option = '\n'.join(c_if_option(opt) for opt in options)
 
     if args['--output-name'].endswith('.c'):
         header_output_name = os.path.splitext(args['--output-name'])[0] + '.h'
@@ -234,28 +246,32 @@ if __name__ == '__main__':
     doc_n = len(doc)
 
     template_out = Template(args['--template']).safe_substitute(
-            help_message=to_initalizer(doc),
-            help_message_n=doc_n,
-            usage_pattern=to_c(usage),
-            if_flag=t_if_flag,
-            if_option=t_if_option,
-            if_command=t_if_command,
-            if_argument=t_if_argument,
-            defaults=t_defaults,
-            elems_cmds=null_if_zero(t_elems_cmds),
-            elems_args=null_if_zero(t_elems_args),
-            elems_opts=null_if_zero(t_elems_opts),
-            t_elems_n_commands=str(len(commands)),
-            t_elems_n_arguments=str(len(arguments)),
-            t_elems_n_options=str(len(flags + options)),
-            header_name=header_name)
+        help_message=to_initializer(doc),
+        help_message_n=doc_n,
+        usage_pattern=to_c(usage),
+        if_flag=t_if_flag,
+        if_option=t_if_option,
+        if_command=t_if_command,
+        if_argument=t_if_argument,
+        defaults=t_defaults,
+        elems_cmds=null_if_zero(t_elems_cmds),
+        elems_args=null_if_zero(t_elems_args),
+        elems_opts=null_if_zero(t_elems_opts),
+        t_elems_n_commands=str(len(commands)),
+        t_elems_n_arguments=str(len(arguments)),
+        t_elems_n_options=str(len(flags + options)),
+        header_name=header_name)
+
+    print('t_arguments:', t_commands, ';')
 
     template_header_out = Template(args['--template-header']).safe_substitute(
         commands=t_commands,
         arguments=t_arguments,
         flags=t_flags,
         options=t_options,
-        help_message_n=doc_n).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
+        help_message_n=doc_n,
+        # nargs=t_nargs
+    ).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
 
     if args['--output-name'] is None:
         print(template_out.strip() + '\n')
@@ -269,3 +285,7 @@ if __name__ == '__main__':
 
         except IOError as e:
             sys.exit(str(e))
+
+
+if __name__ == '__main__':
+    main()

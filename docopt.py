@@ -6,21 +6,19 @@
  * Copyright (c) 2013 Vladimir Keleshev, vladimir@keleshev.com
 
 """
-import sys
-import re
 
+import re
+import sys
 
 __all__ = ['docopt']
 __version__ = '0.6.2'
 
 
 class DocoptLanguageError(Exception):
-
     """Error in construction of usage-message by developer."""
 
 
 class DocoptExit(SystemExit):
-
     """Exit in case user invoked program with incorrect arguments."""
 
     usage = ''
@@ -30,7 +28,6 @@ class DocoptExit(SystemExit):
 
 
 class Pattern(object):
-
     def __eq__(self, other):
         return repr(self) == repr(other)
 
@@ -97,7 +94,6 @@ def transform(pattern):
 
 
 class LeafPattern(Pattern):
-
     """Leaf/terminal node of a pattern tree."""
 
     def __init__(self, name, value=None):
@@ -131,7 +127,6 @@ class LeafPattern(Pattern):
 
 
 class BranchPattern(Pattern):
-
     """Branch/inner node of a pattern tree."""
 
     def __init__(self, *children):
@@ -148,7 +143,6 @@ class BranchPattern(Pattern):
 
 
 class Argument(LeafPattern):
-
     def single_match(self, left):
         for n, pattern in enumerate(left):
             if type(pattern) is Argument:
@@ -156,15 +150,15 @@ class Argument(LeafPattern):
         return None, None
 
     @classmethod
-    def parse(class_, source):
+    def parse(cls, source):
         name = re.findall('(<\S*?>)', source)[0]
         value = re.findall('\[default: (.*)\]', source, flags=re.I)
-        return class_(name, value[0] if value else None)
+        return cls(name, value[0] if value else None)
 
 
 class Command(Argument):
-
     def __init__(self, name, value=False):
+        super(Command, self).__init__(name, value)
         self.name, self.value = name, value
 
     def single_match(self, left):
@@ -178,8 +172,8 @@ class Command(Argument):
 
 
 class Option(LeafPattern):
-
     def __init__(self, short=None, long=None, argcount=0, value=False):
+        super(Option, self).__init__(self.name, value)
         assert argcount in (0, 1)
         self.short, self.long, self.argcount = short, long, argcount
         self.value = None if value is False and argcount else value
@@ -275,13 +269,13 @@ class Either(BranchPattern):
             if matched:
                 outcomes.append(outcome)
         if outcomes:
-            return min(outcomes, key=lambda outcome: len(outcome[1]))
+            return min(outcomes, key=lambda _outcome: len(_outcome[1]))
         return False, left, collected
 
 
 class Tokens(list):
-
     def __init__(self, source, error=DocoptExit):
+        super(Tokens, self).__init__()
         self += source.split() if hasattr(source, 'split') else source
         self.error = error
 
@@ -404,7 +398,6 @@ def parse_atom(tokens, options):
              | long | shorts | argument | command ;
     """
     token = tokens.current()
-    result = []
     if token in '([':
         tokens.move()
         matching, pattern = {'(': [')', Required], '[': [']', Optional]}[token]

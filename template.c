@@ -176,7 +176,7 @@ size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
 
     for (i=0; i < n_commands; i++) {
         command = &commands[i];
-        if (!strcmp(command->name, ts->current)){
+        if (strcmp(command->name, ts->current) == 0) {
             command->value = true;
             tokens_move(ts);
             return 0;
@@ -225,12 +225,12 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
     /* options */
     for (i=0; i < elements->n_options; i++) {
         option = &elements->options[i];
-        if (help && option->value && !strcmp(option->olong, "--help")) {
-            for(j=0; j < $help_message_n; j++)
+        if (help && option->value && strcmp(option->olong, "--help") == 0) {
+            for (j = 0; j < $help_message_n; j++)
                 puts(args->help_message[j]);
             return 1;
         } else if (version && option->value &&
-                   !strcmp(option->olong, "--version")) {
+                   strcmp(option->olong, "--version") == 0) {
             puts(version);
             return 1;
         }$if_flag$if_option
