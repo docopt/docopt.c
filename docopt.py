@@ -7,6 +7,8 @@
 
 """
 
+from __future__ import print_function
+
 import re
 import sys
 
@@ -95,9 +97,13 @@ def transform(pattern):
 
 class LeafPattern(Pattern):
     """Leaf/terminal node of a pattern tree."""
+    name = value = None
 
     def __init__(self, name, value=None):
-        self.name, self.value = name, value
+        if name is not None:
+            self.name = name
+        if value is not None:
+            self.value = value
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.value)
@@ -173,7 +179,7 @@ class Command(Argument):
 
 class Option(LeafPattern):
     def __init__(self, short=None, long=None, argcount=0, value=False):
-        super(Option, self).__init__(self.name, value)
+        super(Option, self).__init__(None, value)
         assert argcount in (0, 1)
         self.short, self.long, self.argcount = short, long, argcount
         self.value = None if value is False and argcount else value
