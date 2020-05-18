@@ -13,8 +13,8 @@ struct Command {
 
 struct Argument {
     const char *name;
-    char *value;
-    char **array;
+    const char *value;
+    const char *array[ARG_MAX];
 };
 
 struct Option {
@@ -22,7 +22,7 @@ struct Option {
     const char *olong;
     bool argcount;
     bool value;
-    char *argument;
+    const char *argument;
 };
 
 struct Elements {

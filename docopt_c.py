@@ -91,7 +91,7 @@ def c_if_command(cmd):
 
 def c_if_argument(arg):
     return 'if (strcmp(argument->name, {val!s}) == 0) {{\n' \
-           '    args->{prop!s} = argument->value;\n' \
+           '    args->{prop!s} = (char*) argument->value;\n' \
            '}}\n'.format(val=to_c(arg.name),
                          prop=c_name(arg.name))
 
@@ -107,7 +107,7 @@ def c_if_flag(obj):
 def c_if_option(obj):
     return ' else if (strcmp(option->o{typ!s}, {val!s}) == 0) {{\n' \
            '    if (option->argument) {{\n' \
-           '        args->{prop!s} = option->argument;\n' \
+           '        args->{prop!s} = (char*) option->argument;\n' \
            '    }}\n}}\n'.format(typ=('long' if obj.long else 'short'),
                                  val=to_c(obj.long or obj.short),
                                  prop=c_name(obj.long or obj.short))
