@@ -30,9 +30,10 @@ from __future__ import print_function
 import numbers
 import os.path
 import re
-import sys
 import textwrap
 from string import Template
+
+import sys
 
 import docopt
 
@@ -91,7 +92,7 @@ def c_if_command(cmd):
 
 def c_if_argument(arg):
     return 'if (strcmp(argument->name, {val!s}) == 0) {{\n' \
-           '    args->{prop!s} = (char*) argument->value;\n' \
+           '    args->{prop!s} = (char *) argument->value;\n' \
            '}}\n'.format(val=to_c(arg.name),
                          prop=c_name(arg.name))
 
@@ -107,7 +108,7 @@ def c_if_flag(obj):
 def c_if_option(obj):
     return ' else if (strcmp(option->o{typ!s}, {val!s}) == 0) {{\n' \
            '    if (option->argument) {{\n' \
-           '        args->{prop!s} = (char*) option->argument;\n' \
+           '        args->{prop!s} = (char *) option->argument;\n' \
            '    }}\n}}\n'.format(typ=('long' if obj.long else 'short'),
                                  val=to_c(obj.long or obj.short),
                                  prop=c_name(obj.long or obj.short))
@@ -204,7 +205,7 @@ def main():
                                                                                       t_options=t_options) \
         if t_options != '' else ''
     t_defaults = ', '.join(to_c(leaf.value) for leaf in leafs)
-    t_defaults = re.sub(r'"(.*?)"', r'(char*) "\1"', t_defaults)
+    t_defaults = re.sub(r'"(.*?)"', r'(char *) "\1"', t_defaults)
     t_defaults = '\n{indent}'.format(indent=_indent * 2).join(textwrap.wrap(t_defaults, 72))
     t_defaults = '\n{indent}{t_defaults},'.format(indent=_indent * 2, t_defaults=t_defaults) if t_defaults != '' else ''
     t_elems_cmds = ',\n{indent}'.format(indent=_indent * 2).join(c_command(cmd) for cmd in commands)
@@ -242,8 +243,10 @@ def main():
     ) if t_if_argument != '' else ''
     t_if_flag = ''.join('\n{indent}'.format(indent=_indent * 2).join(c_if_flag(flag).splitlines())
                         for flag in flags)
-    t_if_option = '\n'.join('\n{indent}'.format(indent=_indent * 2).join(c_if_option(opt).splitlines())
-                            for opt in options)
+    t_if_option = ''.join(
+        '\n{indent}'.format(indent=_indent * 2).join(c_if_option(opt).splitlines())
+        for opt in options
+    )
 
     if args['--output-name'].endswith('.c'):
         header_output_name = os.path.splitext(args['--output-name'])[0] + '.h'
@@ -253,13 +256,13 @@ def main():
 
     header_name = os.path.basename(header_output_name)
 
-    doc = doc.split('\n')
+    doc = doc.splitlines()
     doc_n = len(doc)
 
     template_out = Template(args['--template']).safe_substitute(
-        help_message=to_initializer(doc),
+        help_message='\n{indent}'.format(indent=_indent).join(to_initializer(doc).splitlines()),
         help_message_n=doc_n,
-        usage_pattern=to_c(usage),
+        usage_pattern='\n{indent}'.format(indent=_indent * 2).join(to_c(usage).splitlines()),
         if_flag=t_if_flag,
         if_option=t_if_option,
         if_command=t_if_command,
@@ -271,7 +274,8 @@ def main():
         t_elems_n_commands=str(len(commands)),
         t_elems_n_arguments=str(len(arguments)),
         t_elems_n_options=str(len(flags + options)),
-        header_name=header_name)
+        header_name=header_name
+    )
 
     template_header_out = Template(args['--template-header']).safe_substitute(
         commands=t_commands,
@@ -283,7 +287,7 @@ def main():
     ).replace('$header_no_ext', os.path.splitext(header_name)[0].upper())
 
     if args['--output-name'] is None:
-        print(template_out.strip() + '\n')
+        print(template_out.strip(), '\n')
     else:
         try:
             with open(args['--output-name'], 'w') as f:

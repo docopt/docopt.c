@@ -1,8 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+
+#if defined(__STDC__) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+
+#include <stdbool.h>
+
+#else
+
+#include "stdbool.h"
+
+#endif
 
 #include "$header_name"
 
@@ -47,7 +56,7 @@ struct Tokens {
 };
 
 const char usage_pattern[] =
-$usage_pattern;
+        $usage_pattern;
 
 struct Tokens tokens_new(size_t argc, char **argv) {
     struct Tokens ts;
@@ -58,7 +67,7 @@ struct Tokens tokens_new(size_t argc, char **argv) {
     return ts;
 }
 
-struct Tokens* tokens_move(struct Tokens *ts) {
+struct Tokens *tokens_move(struct Tokens *ts) {
     if (ts->i < ts->argc) {
         ts->current = ts->argv[++ts->i];
     }
@@ -94,14 +103,14 @@ size_t parse_long(struct Tokens *ts, struct Elements *elements) {
     struct Option *option;
     struct Option *options = elements->options;
 
-    len_prefix = (eq-(ts->current))/sizeof(char);
-    for (i=0; i < n_options; i++) {
+    len_prefix = (eq - (ts->current)) / sizeof(char);
+    for (i = 0; i < n_options; i++) {
         option = &options[i];
         if (!strncmp(ts->current, option->olong, len_prefix))
             break;
     }
     if (i == n_options) {
-        /* TODO '%s is not a unique prefix */
+        /* TODO: %s is not a unique prefix */
         fprintf(stderr, "%s is not recognized\n", ts->current);
         return 1;
     }
@@ -137,7 +146,7 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
     raw = &ts->current[1];
     tokens_move(ts);
     while (raw[0] != '\0') {
-        for (i=0; i < n_options; i++) {
+        for (i = 0; i < n_options; i++) {
             option = &options[i];
             if (option->oshort != NULL && option->oshort[1] == raw[0])
                 break;
@@ -174,7 +183,7 @@ size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     struct Command *commands = elements->commands;
     /* Argument *arguments = elements->arguments; */
 
-    for (i=0; i < n_commands; i++) {
+    for (i = 0; i < n_commands; i++) {
         command = &commands[i];
         if (strcmp(command->name, ts->current) == 0) {
             command->value = true;
@@ -184,11 +193,13 @@ size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     }
     /* not implemented yet, just skip for now
        parsed.append(Argument(None, tokens.move())) */
-    /*fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
+    /*
+    fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
     fprintf(stderr, "  '");
     for (i=0; i<ts->argc ; i++)
         fprintf(stderr, "%s ", ts->argv[i]);
-    fprintf(stderr, "'\n");*/
+    fprintf(stderr, "'\n");
+    */
     tokens_move(ts);
     return 0;
 }
@@ -211,19 +222,19 @@ size_t parse_args(struct Tokens *ts, struct Elements *elements) {
     return 0;
 }
 
-size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const bool help,
-                     const char *version){
+size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args,
+                     const bool help, const char *version) {
     struct Command *command;
     struct Argument *argument;
     struct Option *option;
     size_t i, j;
 
     /* fix gcc-related compiler warnings (unused) */
-    (void)command;
-    (void)argument;
+    (void) command;
+    (void) argument;
 
     /* options */
-    for (i=0; i < elements->n_options; i++) {
+    for (i = 0; i < elements->n_options; i++) {
         option = &elements->options[i];
         if (help && option->value && strcmp(option->olong, "--help") == 0) {
             for (j = 0; j < $help_message_n; j++)
@@ -236,12 +247,14 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
         }$if_flag$if_option
     }
     /* commands */
-    for (i=0; i < elements->n_commands; i++) {
-        command = &elements->commands[i];$if_command
+    for (i = 0; i < elements->n_commands; i++) {
+        command = &elements->commands[i];
+        $if_command
     }
     /* arguments */
-    for (i=0; i < elements->n_arguments; i++) {
-        argument = &elements->arguments[i];$if_argument
+    for (i = 0; i < elements->n_arguments; i++) {
+        argument = &elements->arguments[i];
+        $if_argument
     }
     return 0;
 }
@@ -253,8 +266,8 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
 
 struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char *version) {
     struct DocoptArgs args = {$defaults
-        usage_pattern,
-        $help_message
+            usage_pattern,
+            $help_message
     };
     struct Tokens ts;
     struct Command commands[] = {$elems_cmds
@@ -264,6 +277,8 @@ struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char 
     struct Option options[] = {$elems_opts
     };
     struct Elements elements;
+    size_t return_code = EXIT_SUCCESS;
+
     elements.n_commands = $t_elems_n_commands;
     elements.n_arguments = $t_elems_n_arguments;
     elements.n_options = $t_elems_n_options;
@@ -271,10 +286,16 @@ struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char 
     elements.arguments = arguments;
     elements.options = options;
 
+    if (argc == 1) {
+        argv[argc++] = "--help";
+        argv[argc++] = NULL;
+        return_code = EXIT_FAILURE;
+    }
+
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
         exit(EXIT_FAILURE);
     if (elems_to_args(&elements, &args, help, version))
-        exit(EXIT_SUCCESS);
+        exit(return_code);
     return args;
 }
