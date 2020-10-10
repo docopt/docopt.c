@@ -1,5 +1,5 @@
  /*
-  * log.h -- macros for logging and debuging.
+  * log.h -- macros for logging and debugging.
   *
   * Examples:
   *
