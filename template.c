@@ -277,7 +277,7 @@ struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char 
     struct Option options[] = {$elems_opts
     };
     struct Elements elements;
-    size_t return_code = EXIT_SUCCESS;
+    int return_code = EXIT_SUCCESS;
 
     elements.n_commands = $t_elems_n_commands;
     elements.n_arguments = $t_elems_n_arguments;
