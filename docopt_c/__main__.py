@@ -36,7 +36,7 @@ import sys
 
 from docopt_c import docopt
 from docopt_c.docopt_c import c_name, parse_leafs, to_c, c_command, c_argument, c_option, c_if_option, to_initializer, \
-    null_if_zero, c_if_flag, c_if_argument, c_if_command
+    null_if_zero, c_if_flag, c_if_argument, c_if_command, _data_join
 
 
 def main():
@@ -54,10 +54,10 @@ def main():
             args['<docopt>'] = sys.stdin.read()
         if args['--template'] is None:
             args['--template'] = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "_data/template.c")
+                os.path.dirname(os.path.realpath(__file__)), _data_join("template.c"))
         if args['--template-header'] is None:
             args['--template-header'] = os.path.join(
-                os.path.dirname(args['--template']), "_data/template.h")
+                os.path.dirname(args['--template']), _data_join("template.h"))
         with open(args['--template'], 'rt') as f:
             args['--template'] = f.read()
         with open(args['--template-header'], 'rt') as f:
@@ -139,7 +139,9 @@ def main():
         for opt in options
     )
 
-    if args['--output-name'].endswith('.c'):
+    if not args['--output-name']:
+        header_output_name = '<stdout>'
+    elif args['--output-name'].endswith('.c'):
         header_output_name = os.path.splitext(args['--output-name'])[0] + '.h'
     else:
         args['--output-name'] = args['--output-name'] + '.h'
@@ -181,10 +183,10 @@ def main():
         print(template_out.strip(), '\n')
     else:
         try:
-            with open(args['--output-name'], 'w') as f:
+            with open(sys.stdout if args['--output-name'] in (None, "<stdout>") else args['--output-name'], 'w') as f:
                 f.write(template_out.strip() + '\n')
 
-            with open(header_output_name, 'w') as f:
+            with open(sys.stdout if header_output_name == "<stdout>" else header_output_name, 'w') as f:
                 f.write(template_header_out.strip() + '\n')
 
         except IOError as e:

@@ -31,12 +31,20 @@ import numbers
 import os.path
 import re
 import textwrap
+from functools import partial
 from string import Template
 
 import sys
 
+from pkg_resources import resource_filename
+
 from docopt_c import docopt
 
+_data_join = partial(
+    os.path.join,
+    os.path.dirname(resource_filename(sys.modules[__name__].__name__.partition(".")[2], "__init__.py")),
+    "_data"
+)
 
 def to_initializer(val):
     if isinstance(val, (str, type(None), bool, numbers.Number)):
@@ -163,10 +171,10 @@ def main():
             args['<docopt>'] = sys.stdin.read()
         if args['--template'] is None:
             args['--template'] = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "_data/template.c")
+                os.path.dirname(os.path.realpath(__file__)), _data_join("template.c"))
         if args['--template-header'] is None:
             args['--template-header'] = os.path.join(
-                os.path.dirname(args['--template']), "_data/template.h")
+                os.path.dirname(args['--template']), _data_join("template.h"))
         with open(args['--template'], 'rt') as f:
             args['--template'] = f.read()
         with open(args['--template-header'], 'rt') as f:

@@ -1,7 +1,7 @@
 C-code generator for docopt language
 ====================================
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PyPi publish](https://github.com/offscale/cdd-python/workflows/PyPi%20publish/badge.svg)](https://github.com/offscale/docopt.c/actions)
+[![PyPi publish](https://github.com/offscale/docopt.c/actions/workflows/main.yml/badge.svg)](https://github.com/offscale/docopt.c/actions/workflows/main.yml)
 [![PyPi: release](https://img.shields.io/pypi/v/docopt_c.svg?maxAge=3600)](https://pypi.org/project/docopt_c)
 
 Note, *at this point the code generator handles only options*
