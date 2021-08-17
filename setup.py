@@ -12,7 +12,9 @@ from operator import attrgetter
 from os import path, listdir
 from os.path import extsep
 from platform import python_version_tuple
+from sys import modules
 
+from pkg_resources import resource_filename
 from setuptools import find_packages, setup
 
 if python_version_tuple()[0] == '2':
@@ -46,13 +48,9 @@ def to_funcs(*paths):
 
 def main():
     """Main function for setup.py; this actually does the installation"""
+    assert path.isfile(resource_filename(package_name, "docopt_c.py"))
     with open(
-        path.join(
-            path.abspath(path.dirname(__file__)),
-            package_name,
-            "__init__{extsep}py".format(extsep=extsep),
-        )
-    ) as f:
+        resource_filename(package_name, "docopt_c{extsep}py".format(extsep=extsep))) as f:
         parsed_init = parse(f.read())
 
     __author__, __version__, __description__ = map(
@@ -61,12 +59,12 @@ def main():
             lambda node: isinstance(node, (Constant, Str)),
             map(
                 attrgetter("value"),
-                filter(lambda node: isinstance(node, Assign), parsed_init.body),
+                filter(lambda node: isinstance(node, Assign) and any(filter(lambda target: target.id in frozenset(("__author__", "__version__", "__description__")),
+                                                                            node.targets)),
+                       parsed_init.body),
             ),
         ),
     )
-
-    _data_join, _data_install_dir = to_funcs("_data")
 
     setup(
         name=package_name,
@@ -76,8 +74,8 @@ def main():
         description=__description__,
         long_description=long_description,
         long_description_content_type="text/markdown",
-        packages=find_packages(),
-        package_dir={package_name: package_name},
+        py_modules=["docopt_c"],
+        scripts=["docopt.py", "docopt_c.py"],
         classifiers=[
             "Development Status :: 3 - Alpha",
             "Environment :: Console",
@@ -98,10 +96,7 @@ def main():
             "Topic :: Software Development :: Compilers",
             "Topic :: Software Development :: Pre-processors"
         ],
-        url="https://github.com/offscale/docopt.c",
-        data_files=[
-            (_data_install_dir(), list(map(_data_join, listdir(_data_join()))))
-        ]
+        url="https://github.com/docopt/docopt.c"
     )
 
 
