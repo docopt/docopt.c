@@ -141,11 +141,13 @@ def main():
 
     if not args['--output-name']:
         header_output_name = '<stdout>'
-    elif args['--output-name'].endswith('.c'):
-        header_output_name = os.path.splitext(args['--output-name'])[0] + '.h'
     else:
-        args['--output-name'] = args['--output-name'] + '.h'
-        header_output_name = args['--output-name'] + '.c'
+        base, ext = os.path.splitext(args['--output-name'])
+        if ext not in frozenset(('.h', '.c')):
+            base = args['--output-name']
+
+        args['--output-name'] = "{base}.c".format(base=base)
+        header_output_name = "{base}.h".format(base=base)
 
     header_name = os.path.basename(header_output_name)
 

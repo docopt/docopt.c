@@ -1,17 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
-
-#if defined(__STDC__) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-
-#include <stdbool.h>
-
-#else
-
-#include "stdbool.h"
-
-#endif
 
 #include "$header_name"
 
@@ -35,9 +24,9 @@ struct Option {
 };
 
 struct Elements {
-    size_t n_commands;
-    size_t n_arguments;
-    size_t n_options;
+    int n_commands;
+    int n_arguments;
+    int n_options;
     struct Command *commands;
     struct Argument *arguments;
     struct Option *options;
@@ -49,16 +38,16 @@ struct Elements {
  */
 
 struct Tokens {
-    size_t argc;
+    int argc;
     char **argv;
-    size_t i;
+    int i;
     char *current;
 };
 
 const char usage_pattern[] =
         $usage_pattern;
 
-struct Tokens tokens_new(size_t argc, char **argv) {
+struct Tokens tokens_new(int argc, char **argv) {
     struct Tokens ts;
     ts.argc = argc;
     ts.argv = argv;
@@ -82,10 +71,10 @@ struct Tokens *tokens_move(struct Tokens *ts) {
  * ARGV parsing functions
  */
 
-size_t parse_doubledash(struct Tokens *ts, struct Elements *elements) {
+int parse_doubledash(struct Tokens *ts, struct Elements *elements) {
     /*
-    size_t n_commands = elements->n_commands;
-    size_t n_arguments = elements->n_arguments;
+    int n_commands = elements->n_commands;
+    int n_arguments = elements->n_arguments;
     Command *commands = elements->commands;
     Argument *arguments = elements->arguments;
 
@@ -95,10 +84,10 @@ size_t parse_doubledash(struct Tokens *ts, struct Elements *elements) {
     return 0;
 }
 
-size_t parse_long(struct Tokens *ts, struct Elements *elements) {
-    size_t i;
-    size_t len_prefix;
-    size_t n_options = elements->n_options;
+int parse_long(struct Tokens *ts, struct Elements *elements) {
+    int i;
+    int len_prefix;
+    int n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
     struct Option *option;
     struct Option *options = elements->options;
@@ -136,10 +125,10 @@ size_t parse_long(struct Tokens *ts, struct Elements *elements) {
     return 0;
 }
 
-size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
+int parse_shorts(struct Tokens *ts, struct Elements *elements) {
     char *raw;
-    size_t i;
-    size_t n_options = elements->n_options;
+    int i;
+    int n_options = elements->n_options;
     struct Option *option;
     struct Option *options = elements->options;
 
@@ -154,7 +143,7 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
         if (i == n_options) {
             /* TODO -%s is specified ambiguously %d times */
             fprintf(stderr, "-%c is not recognized\n", raw[0]);
-            return 1;
+            return EXIT_FAILURE;
         }
         raw++;
         if (!option->argcount) {
@@ -163,7 +152,7 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
             if (raw[0] == '\0') {
                 if (ts->current == NULL) {
                     fprintf(stderr, "%s requires argument\n", option->oshort);
-                    return 1;
+                    return EXIT_FAILURE;
                 }
                 raw = ts->current;
                 tokens_move(ts);
@@ -172,13 +161,13 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
             break;
         }
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
-    size_t i;
-    size_t n_commands = elements->n_commands;
-    /* size_t n_arguments = elements->n_arguments; */
+int parse_argcmd(struct Tokens *ts, struct Elements *elements) {
+    int i;
+    int n_commands = elements->n_commands;
+    /* int n_arguments = elements->n_arguments; */
     struct Command *command;
     struct Command *commands = elements->commands;
     /* Argument *arguments = elements->arguments; */
@@ -188,7 +177,7 @@ size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
         if (strcmp(command->name, ts->current) == 0) {
             command->value = true;
             tokens_move(ts);
-            return 0;
+            return EXIT_SUCCESS;
         }
     }
     /* not implemented yet, just skip for now
@@ -201,16 +190,16 @@ size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     fprintf(stderr, "'\n");
     */
     tokens_move(ts);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t parse_args(struct Tokens *ts, struct Elements *elements) {
-    size_t ret;
+int parse_args(struct Tokens *ts, struct Elements *elements) {
+    int ret = EXIT_FAILURE;
 
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
             ret = parse_doubledash(ts, elements);
-            if (!ret) break;
+            if (ret == EXIT_FAILURE) break;
         } else if (ts->current[0] == '-' && ts->current[1] == '-') {
             ret = parse_long(ts, elements);
         } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
@@ -219,15 +208,15 @@ size_t parse_args(struct Tokens *ts, struct Elements *elements) {
             ret = parse_argcmd(ts, elements);
         if (ret) return ret;
     }
-    return 0;
+    return ret;
 }
 
-size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args,
+int elems_to_args(struct Elements *elements, struct DocoptArgs *args,
                      const bool help, const char *version) {
     struct Command *command;
     struct Argument *argument;
     struct Option *option;
-    size_t i, j;
+    int i, j;
 
     /* fix gcc-related compiler warnings (unused) */
     (void) command;
@@ -239,11 +228,11 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args,
         if (help && option->value && strcmp(option->olong, "--help") == 0) {
             for (j = 0; j < $help_message_n; j++)
                 puts(args->help_message[j]);
-            return 1;
+            return EXIT_FAILURE;
         } else if (version && option->value &&
                    strcmp(option->olong, "--version") == 0) {
             puts(version);
-            return 1;
+            return EXIT_FAILURE;
         }$if_flag$if_option
     }
     /* commands */
@@ -256,7 +245,7 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args,
         argument = &elements->arguments[i];
         $if_argument
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
@@ -264,7 +253,7 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args,
  * Main docopt function
  */
 
-struct DocoptArgs docopt(size_t argc, char *argv[], const bool help, const char *version) {
+struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *version) {
     struct DocoptArgs args = {$defaults
             usage_pattern,
             $help_message

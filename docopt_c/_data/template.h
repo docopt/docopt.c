@@ -9,7 +9,19 @@
 
 #else
 
-#include "stdbool.h"
+#ifdef true
+#undef true
+#endif
+#ifdef false
+#undef false
+#endif
+#ifdef bool
+#undef bool
+#endif
+
+#define true 1
+#define false !true
+typedef int bool;
 
 #endif
 
@@ -69,6 +81,6 @@ struct DocoptArgs {
     const char *help_message[$help_message_n];
 };
 
-struct DocoptArgs docopt(size_t, char *[], bool, const char *);
+struct DocoptArgs docopt(int, char *[], bool, const char *);
 
 #endif
