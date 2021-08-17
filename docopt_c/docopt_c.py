@@ -35,7 +35,7 @@ from string import Template
 
 import sys
 
-import docopt
+from docopt_c import docopt
 
 
 def to_initializer(val):
@@ -163,10 +163,10 @@ def main():
             args['<docopt>'] = sys.stdin.read()
         if args['--template'] is None:
             args['--template'] = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "template.c")
+                os.path.dirname(os.path.realpath(__file__)), "_data/template.c")
         if args['--template-header'] is None:
             args['--template-header'] = os.path.join(
-                os.path.dirname(args['--template']), "template.h")
+                os.path.dirname(args['--template']), "_data/template.h")
         with open(args['--template'], 'rt') as f:
             args['--template'] = f.read()
         with open(args['--template-header'], 'rt') as f:
