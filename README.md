@@ -43,31 +43,30 @@ $ cat example.docopt | python -m docopt_c > docopt.c
 ### Step 3. Include the generated `docopt.c` into your program
 
 ```c
-#include <stdlib.h>
-#include "docopt.c"
+#include "docopt.h"
 
 int main(int argc, char *argv[])
 {
-    DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
+    struct DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
 
-    printf("Commands\n");
-    printf("    mine == %s\n", args.mine ? "true" : "false");
-    printf("    move == %s\n", args.move ? "true" : "false");
-    printf("    create == %s\n", args.create ? "true" : "false");
-    printf("    remove == %s\n", args.remove ? "true" : "false");
-    printf("    set == %s\n", args.set ? "true" : "false");
-    printf("    ship == %s\n", args.ship ? "true" : "false");
-    printf("    shoot == %s\n", args.shoot ? "true" : "false");
-    printf("Arguments\n");
-    printf("    x == %s\n", args.x);
-    printf("    y == %s\n", args.y);
-    printf("Flags\n");
-    printf("    --drifting == %s\n", args.drifting ? "true" : "false");
-    printf("    --help == %s\n", args.help ? "true" : "false");
-    printf("    --moored == %s\n", args.moored ? "true" : "false");
-    printf("    --version == %s\n", args.version ? "true" : "false");
-    printf("Options\n");
-    printf("    --speed == %s\n", args.speed);
+    puts("Commands");
+    printf("\tmine == %s\n", args.mine ? "true" : "false");
+    printf("\tmove == %s\n", args.move ? "true" : "false");
+    printf("\tcreate == %s\n", args.create ? "true" : "false");
+    printf("\tremove == %s\n", args.remove ? "true" : "false");
+    printf("\tset == %s\n", args.set ? "true" : "false");
+    printf("\tship == %s\n", args.ship ? "true" : "false");
+    printf("\tshoot == %s\n", args.shoot ? "true" : "false");
+    puts("Arguments");
+    printf("\tx == %s\n", args.x);
+    printf("\ty == %s\n", args.y);
+    puts("Flags");
+    printf("\t--drifting == %s\n", args.drifting ? "true" : "false");
+    printf("\t--help == %s\n", args.help ? "true" : "false");
+    printf("\t--moored == %s\n", args.moored ? "true" : "false");
+    printf("\t--version == %s\n", args.version ? "true" : "false");
+    puts("Options");
+    printf("\t--speed == %s\n", args.speed);
 
     return EXIT_SUCCESS;
 }

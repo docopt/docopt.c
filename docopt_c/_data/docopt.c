@@ -1,70 +1,8 @@
-#ifdef __cplusplus
-#include <cstdio>
-#include <cstdlib>
-#include <cstddef>
-#include <cstring>
-#else
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <string.h>
-#endif
 
-
-struct DocoptArgs {
-    /* commands */
-    size_t create;
-    size_t mine;
-    size_t move;
-    size_t remove;
-    size_t set;
-    size_t ship;
-    size_t shoot;
-    /* arguments */
-    char *name;
-    char *x;
-    char *y;
-    /* options without arguments */
-    size_t drifting;
-    size_t help;
-    size_t moored;
-    size_t version;
-    /* options with arguments */
-    char *speed;
-    /* special */
-    const char *usage_pattern;
-    const char *help_message;
-};
-
-const char help_message[] =
-"Naval Fate.\n"
-"\n"
-"Usage:\n"
-"  naval_fate ship create <name>...\n"
-"  naval_fate ship <name> move <x> <y> [--speed=<kn>]\n"
-"  naval_fate ship shoot <x> <y>\n"
-"  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]\n"
-"  naval_fate --help\n"
-"  naval_fate --version\n"
-"\n"
-"Options:\n"
-"  -h --help     Show this screen.\n"
-"  --version     Show version.\n"
-"  --speed=<kn>  Speed in knots [default: 10].\n"
-"  --moored      Moored (anchored) mine.\n"
-"  --drifting    Drifting mine.\n"
-"\n"
-"";
-
-const char usage_pattern[] =
-"Usage:\n"
-"  naval_fate ship create <name>...\n"
-"  naval_fate ship <name> move <x> <y> [--speed=<kn>]\n"
-"  naval_fate ship shoot <x> <y>\n"
-"  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]\n"
-"  naval_fate --help\n"
-"  naval_fate --version";
+#include "docopt.h"
 
 struct Command {
     const char *name;
@@ -73,8 +11,8 @@ struct Command {
 
 struct Argument {
     const char *name;
-    char *value;
-    char **array;
+    const char *value;
+    const char *array[ARG_MAX];
 };
 
 struct Option {
@@ -82,13 +20,13 @@ struct Option {
     const char *olong;
     bool argcount;
     bool value;
-    char *argument;
+    const char *argument;
 };
 
 struct Elements {
-    size_t n_commands;
-    size_t n_arguments;
-    size_t n_options;
+    int n_commands;
+    int n_arguments;
+    int n_options;
     struct Command *commands;
     struct Argument *arguments;
     struct Option *options;
@@ -100,18 +38,31 @@ struct Elements {
  */
 
 struct Tokens {
-    size_t argc;
+    int argc;
     char **argv;
-    size_t i;
+    int i;
     char *current;
 };
 
-Tokens tokens_new(int argc, char **argv) {
-    struct Tokens ts = {argc, argv, 0, argv[0]};
+const char usage_pattern[] =
+        "Usage:\n"
+        "  naval_fate ship create <name>...\n"
+        "  naval_fate ship <name> move <x> <y> [--speed=<kn>]\n"
+        "  naval_fate ship shoot <x> <y>\n"
+        "  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]\n"
+        "  naval_fate --help\n"
+        "  naval_fate --version";
+
+struct Tokens tokens_new(int argc, char **argv) {
+    struct Tokens ts;
+    ts.argc = argc;
+    ts.argv = argv;
+    ts.i = 0;
+    ts.current = argv[0];
     return ts;
 }
 
-Tokens* tokens_move(Tokens *ts) {
+struct Tokens *tokens_move(struct Tokens *ts) {
     if (ts->i < ts->argc) {
         ts->current = ts->argv[++ts->i];
     }
@@ -126,33 +77,35 @@ Tokens* tokens_move(Tokens *ts) {
  * ARGV parsing functions
  */
 
-size_t parse_doubledash(struct Tokens *ts, struct Elements *elements) {
-    //size_t n_commands = elements->n_commands;
-    //size_t n_arguments = elements->n_arguments;
-    //Command *commands = elements->commands;
-    //Argument *arguments = elements->arguments;
+int parse_doubledash(struct Tokens *ts, struct Elements *elements) {
+    /*
+    int n_commands = elements->n_commands;
+    int n_arguments = elements->n_arguments;
+    Command *commands = elements->commands;
+    Argument *arguments = elements->arguments;
 
-    // not implemented yet
-    // return parsed + [Argument(None, v) for v in tokens]
+    not implemented yet
+    return parsed + [Argument(None, v) for v in tokens]
+    */
     return 0;
 }
 
-size_t parse_long(struct Tokens *ts, struct Elements *elements) {
-    size_t i;
-    size_t len_prefix;
-    size_t n_options = elements->n_options;
+int parse_long(struct Tokens *ts, struct Elements *elements) {
+    int i;
+    int len_prefix;
+    int n_options = elements->n_options;
     char *eq = strchr(ts->current, '=');
     struct Option *option;
     struct Option *options = elements->options;
 
-    len_prefix = (eq-(ts->current))/sizeof(char);
-    for (i=0; i < n_options; i++) {
+    len_prefix = (eq - (ts->current)) / sizeof(char);
+    for (i = 0; i < n_options; i++) {
         option = &options[i];
         if (!strncmp(ts->current, option->olong, len_prefix))
             break;
     }
     if (i == n_options) {
-        // TODO '%s is not a unique prefix
+        /* TODO: %s is not a unique prefix */
         fprintf(stderr, "%s is not recognized\n", ts->current);
         return 1;
     }
@@ -178,25 +131,25 @@ size_t parse_long(struct Tokens *ts, struct Elements *elements) {
     return 0;
 }
 
-size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
+int parse_shorts(struct Tokens *ts, struct Elements *elements) {
     char *raw;
-    size_t i;
-    size_t n_options = elements->n_options;
+    int i;
+    int n_options = elements->n_options;
     struct Option *option;
     struct Option *options = elements->options;
 
     raw = &ts->current[1];
     tokens_move(ts);
     while (raw[0] != '\0') {
-        for (i=0; i < n_options; i++) {
+        for (i = 0; i < n_options; i++) {
             option = &options[i];
             if (option->oshort != NULL && option->oshort[1] == raw[0])
                 break;
         }
         if (i == n_options) {
-            // TODO -%s is specified ambiguously %d times
+            /* TODO -%s is specified ambiguously %d times */
             fprintf(stderr, "-%c is not recognized\n", raw[0]);
-            return 1;
+            return EXIT_FAILURE;
         }
         raw++;
         if (!option->argcount) {
@@ -205,7 +158,7 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
             if (raw[0] == '\0') {
                 if (ts->current == NULL) {
                     fprintf(stderr, "%s requires argument\n", option->oshort);
-                    return 1;
+                    return EXIT_FAILURE;
                 }
                 raw = ts->current;
                 tokens_move(ts);
@@ -214,43 +167,45 @@ size_t parse_shorts(struct Tokens *ts, struct Elements *elements) {
             break;
         }
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t parse_argcmd(struct Tokens *ts, struct Elements *elements) {
-    size_t i;
-    size_t n_commands = elements->n_commands;
-    //size_t n_arguments = elements->n_arguments;
+int parse_argcmd(struct Tokens *ts, struct Elements *elements) {
+    int i;
+    int n_commands = elements->n_commands;
+    /* int n_arguments = elements->n_arguments; */
     struct Command *command;
     struct Command *commands = elements->commands;
-    //Argument *arguments = elements->arguments;
+    /* Argument *arguments = elements->arguments; */
 
-    for (i=0; i < n_commands; i++) {
+    for (i = 0; i < n_commands; i++) {
         command = &commands[i];
-        if (!strcmp(command->name, ts->current)){
+        if (strcmp(command->name, ts->current) == 0) {
             command->value = true;
             tokens_move(ts);
-            return 0;
+            return EXIT_SUCCESS;
         }
     }
-    // not implemented yet, just skip for now
-    // parsed.append(Argument(None, tokens.move()))
-    /*fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
+    /* not implemented yet, just skip for now
+       parsed.append(Argument(None, tokens.move())) */
+    /*
+    fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
     fprintf(stderr, "  '");
     for (i=0; i<ts->argc ; i++)
         fprintf(stderr, "%s ", ts->argv[i]);
-    fprintf(stderr, "'\n");*/
+    fprintf(stderr, "'\n");
+    */
     tokens_move(ts);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t parse_args(struct Tokens *ts, struct Elements *elements) {
-    size_t ret;
+int parse_args(struct Tokens *ts, struct Elements *elements) {
+    int ret = EXIT_FAILURE;
 
     while (ts->current != NULL) {
         if (strcmp(ts->current, "--") == 0) {
             ret = parse_doubledash(ts, elements);
-            if (!ret) break;
+            if (ret == EXIT_FAILURE) break;
         } else if (ts->current[0] == '-' && ts->current[1] == '-') {
             ret = parse_long(ts, elements);
         } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
@@ -259,74 +214,87 @@ size_t parse_args(struct Tokens *ts, struct Elements *elements) {
             ret = parse_argcmd(ts, elements);
         if (ret) return ret;
     }
-    return 0;
+    return ret;
 }
 
-size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const bool help,
-                     const char *version){
+int elems_to_args(struct Elements *elements, struct DocoptArgs *args,
+                     const bool help, const char *version) {
     struct Command *command;
     struct Argument *argument;
     struct Option *option;
-    size_t i;
+    int i, j;
 
-    // fix gcc-related compiler warnings (unused)
-    (void)command;
-    (void)argument;
+    /* fix gcc-related compiler warnings (unused) */
+    (void) command;
+    (void) argument;
 
     /* options */
-    for (i=0; i < elements->n_options; i++) {
+    for (i = 0; i < elements->n_options; i++) {
         option = &elements->options[i];
-        if (help && option->value && !strcmp(option->olong, "--help")) {
-            printf("%s", args->help_message);
-            return 1;
+        if (help && option->value && strcmp(option->olong, "--help") == 0) {
+            for (j = 0; j < 17; j++)
+                puts(args->help_message[j]);
+            return EXIT_FAILURE;
         } else if (version && option->value &&
-                   !strcmp(option->olong, "--version")) {
-            printf("%s\n", version);
-            return 1;
-        } else if (!strcmp(option->olong, "--drifting")) {
+                   strcmp(option->olong, "--version") == 0) {
+            puts(version);
+            return EXIT_FAILURE;
+        } else if (strcmp(option->olong, "--drifting") == 0) {
             args->drifting = option->value;
-        } else if (!strcmp(option->olong, "--help")) {
+        } else if (strcmp(option->olong, "--help") == 0) {
             args->help = option->value;
-        } else if (!strcmp(option->olong, "--moored")) {
+        } else if (strcmp(option->olong, "--moored") == 0) {
             args->moored = option->value;
-        } else if (!strcmp(option->olong, "--version")) {
+        } else if (strcmp(option->olong, "--version") == 0) {
             args->version = option->value;
-        } else if (!strcmp(option->olong, "--speed")) {
-            if (option->argument)
-                args->speed = option->argument;
+        } else if (strcmp(option->olong, "--speed") == 0) {
+            if (option->argument) {
+                args->speed = (char *) option->argument;
+            }
         }
     }
     /* commands */
-    for (i=0; i < elements->n_commands; i++) {
+    for (i = 0; i < elements->n_commands; i++) {
         command = &elements->commands[i];
-        if (!strcmp(command->name, "create")) {
-            args->create = command->value;
-        } else if (!strcmp(command->name, "mine")) {
-            args->mine = command->value;
-        } else if (!strcmp(command->name, "move")) {
-            args->move = command->value;
-        } else if (!strcmp(command->name, "remove")) {
-            args->remove = command->value;
-        } else if (!strcmp(command->name, "set")) {
-            args->set = command->value;
-        } else if (!strcmp(command->name, "ship")) {
-            args->ship = command->value;
-        } else if (!strcmp(command->name, "shoot")) {
-            args->shoot = command->value;
-        }
+        
+        if (strcmp(command->name, "create") == 0) {
+    args->create = command->value;
+}
+ else if (strcmp(command->name, "mine") == 0) {
+    args->mine = command->value;
+}
+ else if (strcmp(command->name, "move") == 0) {
+    args->move = command->value;
+}
+ else if (strcmp(command->name, "remove") == 0) {
+    args->remove = command->value;
+}
+ else if (strcmp(command->name, "set") == 0) {
+    args->set = command->value;
+}
+ else if (strcmp(command->name, "ship") == 0) {
+    args->ship = command->value;
+}
+ else if (strcmp(command->name, "shoot") == 0) {
+    args->shoot = command->value;
+}
+
     }
     /* arguments */
-    for (i=0; i < elements->n_arguments; i++) {
+    for (i = 0; i < elements->n_arguments; i++) {
         argument = &elements->arguments[i];
-        if (!strcmp(argument->name, "<name>")) {
-            args->name = argument->value;
-        } else if (!strcmp(argument->name, "<x>")) {
-            args->x = argument->value;
-        } else if (!strcmp(argument->name, "<y>")) {
-            args->y = argument->value;
+        
+        if (strcmp(argument->name, "<name>") == 0) {
+            args->name = (char *) argument->value;
+        }
+         else if (strcmp(argument->name, "<x>") == 0) {
+            args->x = (char *) argument->value;
+        }
+         else if (strcmp(argument->name, "<y>") == 0) {
+            args->y = (char *) argument->value;
         }
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
@@ -334,10 +302,27 @@ size_t elems_to_args(struct Elements *elements, struct DocoptArgs *args, const b
  * Main docopt function
  */
 
-struct DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *version) {
+struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *version) {
     struct DocoptArgs args = {
-        0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char*) "10",
-        usage_pattern, help_message
+        0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, (char *) "10",
+            usage_pattern,
+            { "Naval Fate.",
+              "",
+              "Usage:",
+              "  naval_fate ship create <name>...",
+              "  naval_fate ship <name> move <x> <y> [--speed=<kn>]",
+              "  naval_fate ship shoot <x> <y>",
+              "  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]",
+              "  naval_fate --help",
+              "  naval_fate --version",
+              "",
+              "Options:",
+              "  -h --help     Show this screen.",
+              "  --version     Show version.",
+              "  --speed=<kn>  Speed in knots [default: 10].",
+              "  --moored      Moored (anchored) mine.",
+              "  --drifting    Drifting mine.",
+              ""}
     };
     struct Tokens ts;
     struct Command commands[] = {
@@ -361,12 +346,26 @@ struct DocoptArgs docopt(size_t argc, char *argv[], bool help, const char *versi
         {NULL, "--version", 0, 0, NULL},
         {NULL, "--speed", 1, 0, NULL}
     };
-    struct Elements elements = {7, 3, 5, commands, arguments, options};
+    struct Elements elements;
+    int return_code = EXIT_SUCCESS;
+
+    elements.n_commands = 7;
+    elements.n_arguments = 3;
+    elements.n_options = 5;
+    elements.commands = commands;
+    elements.arguments = arguments;
+    elements.options = options;
+
+    if (argc == 1) {
+        argv[argc++] = "--help";
+        argv[argc++] = NULL;
+        return_code = EXIT_FAILURE;
+    }
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
         exit(EXIT_FAILURE);
     if (elems_to_args(&elements, &args, help, version))
-        exit(EXIT_SUCCESS);
+        exit(return_code);
     return args;
 }

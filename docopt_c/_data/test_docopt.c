@@ -10,7 +10,7 @@
   * TokenStream
   */
 
-size_t test_tokens(void) {
+int test_tokens(void) {
     char *argv[] = {"prog", "-o", "12"};
     Tokens ts = tokens_new(3, argv);
 
@@ -21,15 +21,15 @@ size_t test_tokens(void) {
     assert(!strcmp(ts.current, "12"));
     tokens_move(&ts);
     assert(ts.current == NULL);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
  /*
   * parse_shorts
   */
 
-size_t test_parse_shorts_1(void) {
-    size_t ret;
+int test_parse_shorts_1(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"-a"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -47,11 +47,11 @@ size_t test_parse_shorts_1(void) {
     assert(option.argcount == false);
     assert(option.value == true);
     assert(option.argument == NULL);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_shorts_2(void) {
-    size_t ret;
+int test_parse_shorts_2(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"-ab"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -70,11 +70,11 @@ size_t test_parse_shorts_2(void) {
     assert(option1.value == true);
     assert(!strcmp(option2.oshort, "-b"));
     assert(option2.value == true);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_shorts_3(void) {
-    size_t ret;
+int test_parse_shorts_3(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"-b"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -93,11 +93,11 @@ size_t test_parse_shorts_3(void) {
     assert(option1.value == false);
     assert(!strcmp(option2.oshort, "-b"));
     assert(option2.value == true);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_shorts_4(void) {
-    size_t ret;
+int test_parse_shorts_4(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"-aARG"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -113,11 +113,11 @@ size_t test_parse_shorts_4(void) {
     assert(!strcmp(option.oshort, "-a"));
     assert(option.value == false);
     assert(!strcmp(option.argument, "ARG"));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_shorts_5(void) {
-    size_t ret;
+int test_parse_shorts_5(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"-a", "ARG"};
     struct Tokens ts = tokens_new(2, argv);
     struct Option options[] = {
@@ -133,15 +133,15 @@ size_t test_parse_shorts_5(void) {
     assert(!strcmp(option.oshort, "-a"));
     assert(option.value == false);
     assert(!strcmp(option.argument, "ARG"));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
  /*
   * parse_long
   */
 
-size_t test_parse_long_1(void) {
-    size_t ret;
+int test_parse_long_1(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"--all"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -159,11 +159,11 @@ size_t test_parse_long_1(void) {
     assert(option.argcount == false);
     assert(option.value == true);
     assert(option.argument == NULL);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_long_2(void) {
-    size_t ret;
+int test_parse_long_2(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"--all"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -189,11 +189,11 @@ size_t test_parse_long_2(void) {
     assert(option2.argcount == false);
     assert(option2.value == false);
     assert(option2.argument == NULL);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_long_3(void) {
-    size_t ret;
+int test_parse_long_3(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"--all=ARG"};
     struct Tokens ts = tokens_new(1, argv);
     struct Option options[] = {
@@ -211,11 +211,11 @@ size_t test_parse_long_3(void) {
     assert(option.argcount == true);
     assert(option.value == false);
     assert(!strcmp(option.argument, "ARG"));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_long_4(void) {
-    size_t ret;
+int test_parse_long_4(void) {
+    int ret = EXIT_SUCCESS;
     char *argv[] = {"--all", "ARG"};
     struct Tokens ts = tokens_new(2, argv);
     struct Option options[] = {
@@ -233,14 +233,14 @@ size_t test_parse_long_4(void) {
     assert(option.argcount == true);
     assert(option.value == false);
     assert(!strcmp(option.argument, "ARG"));
-    return 0;
+    return EXIT_SUCCESS;
 }
 
  /*
   * parse_args
   */
 
-size_t test_parse_args_1(void) {
+int test_parse_args_1(void) {
     struct Command commands[] = {};
     struct Argument arguments[] = {};
     struct Option options[] = {
@@ -251,7 +251,7 @@ size_t test_parse_args_1(void) {
     struct Elements elements = {0, 0, 3, commands, arguments, options};
     char *argv[] = {"--all", "-b", "ARG"};
     struct Tokens ts = tokens_new(3, argv);
-    size_t ret;
+    int ret;
 
     ret = parse_args(&ts, &elements);
     assert(!ret);
@@ -262,10 +262,10 @@ size_t test_parse_args_1(void) {
     assert(options[1].value == true);
     assert(!strcmp(options[2].oshort, "-W"));
     assert(options[2].argument == NULL);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-size_t test_parse_args_2(void) {
+int test_parse_args_2(void) {
     struct Command commands[] = {};
     struct Argument arguments[] = {};
     struct Option options[] = {
@@ -276,7 +276,7 @@ size_t test_parse_args_2(void) {
     struct Elements elements = {0, 0, 3, commands, arguments, options};
     char *argv[] = {"ARG", "-Wall"};
     struct Tokens ts = tokens_new(2, argv);
-    size_t ret;
+    int ret;
 
     ret = parse_args(&ts, &elements);
     assert(!ret);
@@ -291,7 +291,7 @@ size_t test_parse_args_2(void) {
 }
 
 int main(int argc, char *argv[]) {
-    size_t (*functions[])(void) = {test_tokens,
+    int (*functions[])(void) = {test_tokens,
                                    test_parse_shorts_1,
                                    test_parse_shorts_2,
                                    test_parse_shorts_3,
@@ -306,9 +306,9 @@ int main(int argc, char *argv[]) {
                                    test_parse_args_1,
                                    test_parse_args_2,
                                    NULL};
-    size_t (*function)(void);
-    size_t i = -1;
-    size_t ret;
+    int (*function)(void);
+    int i = -1;
+    int ret;
 
     for (function = functions[++i];
          function != NULL;
@@ -317,9 +317,9 @@ int main(int argc, char *argv[]) {
         ret = (*function)();
         if (ret) {
             puts("\nFAILURE!");
-            exit(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
     }
     puts(" OK!");
-    exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
