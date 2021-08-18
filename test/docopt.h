@@ -7,7 +7,10 @@
 
 #include <stdbool.h>
 
-#else
+#elif !defined(_STDBOOL_H)
+#define _STDBOOL_H
+
+#include <stdlib.h>
 
 #ifdef true
 #undef true
@@ -20,8 +23,8 @@
 #endif
 
 #define true 1
-#define false !true
-typedef int bool;
+#define false (!true)
+typedef size_t bool;
 
 #endif
 
@@ -55,8 +58,7 @@ typedef int bool;
 
 #endif
 
-#elif (defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__) \
- || defined(__DragonFly__) || defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__))
+#elif (defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__bsdi__)  || defined(__DragonFly__) || defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__))
 
 #include <sys/param.h>
 

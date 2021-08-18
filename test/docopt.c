@@ -324,7 +324,6 @@ struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *ve
               "  --drifting    Drifting mine.",
               ""}
     };
-    struct Tokens ts;
     struct Command commands[] = {
         {"create", 0},
         {"mine", 0},
@@ -362,9 +361,11 @@ struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *ve
         return_code = EXIT_FAILURE;
     }
 
-    ts = tokens_new(argc, argv);
-    if (parse_args(&ts, &elements))
-        exit(EXIT_FAILURE);
+    {
+        struct Tokens ts = tokens_new(argc, argv);
+        if (parse_args(&ts, &elements))
+            exit(EXIT_FAILURE);
+    }
     if (elems_to_args(&elements, &args, help, version))
         exit(return_code);
     return args;

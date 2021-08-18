@@ -49,7 +49,10 @@ template_h = """
 
 #include <stdbool.h>
 
-#else
+#elif !defined(_STDBOOL_H)
+#define _STDBOOL_H
+
+#include <stdlib.h>
 
 #ifdef true
 #undef true
@@ -62,8 +65,8 @@ template_h = """
 #endif
 
 #define true 1
-#define false !true
-typedef int bool;
+#define false (!true)
+typedef size_t bool;
 
 #endif
 
@@ -389,7 +392,6 @@ struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *ve
             usage_pattern,
             $help_message
     };
-    struct Tokens ts;
     struct Command commands[] = {$elems_cmds
     };
     struct Argument arguments[] = {$elems_args
@@ -412,9 +414,11 @@ struct DocoptArgs docopt(int argc, char *argv[], const bool help, const char *ve
         return_code = EXIT_FAILURE;
     }
 
-    ts = tokens_new(argc, argv);
-    if (parse_args(&ts, &elements))
-        exit(EXIT_FAILURE);
+    {
+        struct Tokens ts = tokens_new(argc, argv);
+        if (parse_args(&ts, &elements))
+            exit(EXIT_FAILURE);
+    }
     if (elems_to_args(&elements, &args, help, version))
         exit(return_code);
     return args;
