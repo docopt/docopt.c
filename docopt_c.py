@@ -231,14 +231,14 @@ int parse_long(struct Tokens *ts, struct Elements *elements) {
     }
     if (i == n_options) {
         /* TODO: %s is not a unique prefix */
-        fprintf(stderr, "%s is not recognized\n", ts->current);
+        fprintf(stderr, "%s is not recognized\\n", ts->current);
         return 1;
     }
     tokens_move(ts);
     if (option->argcount) {
         if (eq == NULL) {
             if (ts->current == NULL) {
-                fprintf(stderr, "%s requires argument\n", option->olong);
+                fprintf(stderr, "%s requires argument\\n", option->olong);
                 return 1;
             }
             option->argument = ts->current;
@@ -248,7 +248,7 @@ int parse_long(struct Tokens *ts, struct Elements *elements) {
         }
     } else {
         if (eq != NULL) {
-            fprintf(stderr, "%s must not have an argument\n", option->olong);
+            fprintf(stderr, "%s must not have an argument\\n", option->olong);
             return 1;
         }
         option->value = true;
@@ -265,7 +265,7 @@ int parse_shorts(struct Tokens *ts, struct Elements *elements) {
 
     raw = &ts->current[1];
     tokens_move(ts);
-    while (raw[0] != '\0') {
+    while (raw[0] != '\\0') {
         for (i = 0; i < n_options; i++) {
             option = &options[i];
             if (option->oshort != NULL && option->oshort[1] == raw[0])
@@ -273,16 +273,16 @@ int parse_shorts(struct Tokens *ts, struct Elements *elements) {
         }
         if (i == n_options) {
             /* TODO -%s is specified ambiguously %d times */
-            fprintf(stderr, "-%c is not recognized\n", raw[0]);
+            fprintf(stderr, "-%c is not recognized\\n", raw[0]);
             return EXIT_FAILURE;
         }
         raw++;
         if (!option->argcount) {
             option->value = true;
         } else {
-            if (raw[0] == '\0') {
+            if (raw[0] == '\\0') {
                 if (ts->current == NULL) {
-                    fprintf(stderr, "%s requires argument\n", option->oshort);
+                    fprintf(stderr, "%s requires argument\\n", option->oshort);
                     return EXIT_FAILURE;
                 }
                 raw = ts->current;
@@ -314,11 +314,11 @@ int parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     /* not implemented yet, just skip for now
        parsed.append(Argument(None, tokens.move())) */
     /*
-    fprintf(stderr, "! argument '%s' has been ignored\n", ts->current);
+    fprintf(stderr, "! argument '%s' has been ignored\\n", ts->current);
     fprintf(stderr, "  '");
     for (i=0; i<ts->argc ; i++)
         fprintf(stderr, "%s ", ts->argv[i]);
-    fprintf(stderr, "'\n");
+    fprintf(stderr, "'\\n");
     */
     tokens_move(ts);
     return EXIT_SUCCESS;
@@ -333,7 +333,7 @@ int parse_args(struct Tokens *ts, struct Elements *elements) {
             if (ret == EXIT_FAILURE) break;
         } else if (ts->current[0] == '-' && ts->current[1] == '-') {
             ret = parse_long(ts, elements);
-        } else if (ts->current[0] == '-' && ts->current[1] != '\0') {
+        } else if (ts->current[0] == '-' && ts->current[1] != '\\0') {
             ret = parse_shorts(ts, elements);
         } else
             ret = parse_argcmd(ts, elements);

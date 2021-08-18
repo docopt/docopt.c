@@ -9,13 +9,12 @@ from ast import Assign, Constant, Str, parse
 from distutils.sysconfig import get_python_lib
 from functools import partial
 from operator import attrgetter
-from os import path, listdir
+from os import path
 from os.path import extsep
 from platform import python_version_tuple
-from sys import modules
 
 from pkg_resources import resource_filename
-from setuptools import find_packages, setup
+from setuptools import setup
 
 if python_version_tuple()[0] == '2':
     from itertools import imap as map, ifilter as filter
@@ -59,7 +58,10 @@ def main():
             lambda node: isinstance(node, (Constant, Str)),
             map(
                 attrgetter("value"),
-                filter(lambda node: isinstance(node, Assign) and any(filter(lambda target: target.id in frozenset(("__author__", "__version__", "__description__")),
+                filter(lambda node: isinstance(node, Assign)
+                                    and any(filter(lambda target: target.id in frozenset(("__author__",
+                                                                                          "__version__",
+                                                                                          "__description__")),
                                                                             node.targets)),
                        parsed_init.body),
             ),
