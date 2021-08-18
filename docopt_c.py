@@ -105,6 +105,12 @@ typedef size_t bool;
 
 #include <sys/param.h>
 
+#if defined(__APPLE__) || defined(__APPLE_CC__)
+/* ARG_MAX gives a segfault on macOS when used for array size below */
+#undef ARG_MAX
+#undef NCARGS
+#endif
+
 #else
 
 #include <limits.h>
