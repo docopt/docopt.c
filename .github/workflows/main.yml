@@ -1,0 +1,43 @@
+name: PyPi publish
+
+on:
+  push:
+    branches:
+    - 'master'
+  pull_request:
+    types:
+    - opened
+    - reopened
+
+jobs:
+    test:
+        name: ${{ matrix.os.name }} ${{ matrix.python-version }}
+        runs-on: ${{ matrix.os.runs-on }}
+        strategy:
+            matrix:
+                python-version: [3.9]
+                os:
+                    -   name: Linux
+                        runs-on: ubuntu-latest
+                        python_platform: linux
+        steps:
+            -   uses: actions/checkout@v2
+            -   name: Set up Python ${{ matrix.python-version }}
+                uses: actions/setup-python@v2
+                with:
+                    python-version: ${{ matrix.python-version }}
+                    architecture: x64
+            -   name: install_dependencies
+                run: |
+                    python -m pip install --upgrade pip
+                    python -m pip install --upgrade setuptools wheel
+            -   name: PyPi release
+                run: |
+                    pip install twine
+                    python setup.py sdist bdist_wheel
+                    python -m twine upload --repository pypi dist/*
+                env:
+                    TWINE_USERNAME: __token__
+                    TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+                    TWINE_NON_INTERACTIVE: 1
+                if: matrix.python-version == '3.9' && matrix.os.name == 'Linux' && github.ref == 'refs/heads/master'

@@ -1,5 +1,8 @@
 C-code generator for docopt language
 ====================================
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![PyPi publish](https://github.com/offscale/docopt.c/actions/workflows/main.yml/badge.svg)](https://github.com/offscale/docopt.c/actions/workflows/main.yml)
+[![PyPi: release](https://img.shields.io/pypi/v/docopt_c.svg?maxAge=3600)](https://pypi.org/project/docopt_c)
 
 Note, *at this point the code generator handles only options*
 (positional arguments, commands and pattern matching will follow).
@@ -10,12 +13,12 @@ Note, *at this point the code generator handles only options*
 Naval Fate.
 
 Usage:
-  naval_fate.py ship create <name>...
-  naval_fate.py ship <name> move <x> <y> [--speed=<kn>]
-  naval_fate.py ship shoot <x> <y>
-  naval_fate.py mine (set|remove) <x> <y> [--moored|--drifting]
-  naval_fate.py --help
-  naval_fate.py --version
+  naval_fate ship create <name>...
+  naval_fate ship <name> move <x> <y> [--speed=<kn>]
+  naval_fate ship shoot <x> <y>
+  naval_fate mine (set|remove) <x> <y> [--moored|--drifting]
+  naval_fate --help
+  naval_fate --version
 
 Options:
   -h --help     Show this screen.
@@ -28,43 +31,44 @@ Options:
 ### Step 2. Generate the C code
 
 ```bash
-$ python docopt_c.py -o docopt.c example.docopt
+$ python -m docopt_c -o docopt.c example.docopt
 ```
 
 or by using pipe
 
 ```bash
-$ cat example.docopt | python docopt_c.py > docopt.c
+$ cat example.docopt | python -m docopt_c > docopt.c
 ```
 
 ### Step 3. Include the generated `docopt.c` into your program
 
 ```c
-#include "docopt.c"
+#include "docopt.h"
 
 int main(int argc, char *argv[])
 {
-    DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
+    struct DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0rc2");
 
-    printf("Commands\n");
-    printf("    mine == %s\n", args.mine ? "true" : "false");
-    printf("    move == %s\n", args.move ? "true" : "false");
-    printf("    create == %s\n", args.create ? "true" : "false");
-    printf("    remove == %s\n", args.remove ? "true" : "false");
-    printf("    set == %s\n", args.set ? "true" : "false");
-    printf("    ship == %s\n", args.ship ? "true" : "false");
-    printf("    shoot == %s\n", args.shoot ? "true" : "false");
-    printf("Arguments\n");
-    printf("    x == %s\n", args.x);
-    printf("    y == %s\n", args.y);
-    printf("Flags\n");
-    printf("    --drifting == %s\n", args.drifting ? "true" : "false");
-    printf("    --help == %s\n", args.help ? "true" : "false");
-    printf("    --moored == %s\n", args.moored ? "true" : "false");
-    printf("    --version == %s\n", args.version ? "true" : "false");
-    printf("Options\n");
-    printf("    --speed == %s\n", args.speed);
-    return 0;
+    puts("Commands");
+    printf("\tmine == %s\n", args.mine ? "true" : "false");
+    printf("\tmove == %s\n", args.move ? "true" : "false");
+    printf("\tcreate == %s\n", args.create ? "true" : "false");
+    printf("\tremove == %s\n", args.remove ? "true" : "false");
+    printf("\tset == %s\n", args.set ? "true" : "false");
+    printf("\tship == %s\n", args.ship ? "true" : "false");
+    printf("\tshoot == %s\n", args.shoot ? "true" : "false");
+    puts("Arguments");
+    printf("\tx == %s\n", args.x);
+    printf("\ty == %s\n", args.y);
+    puts("Flags");
+    printf("\t--drifting == %s\n", args.drifting ? "true" : "false");
+    printf("\t--help == %s\n", args.help ? "true" : "false");
+    printf("\t--moored == %s\n", args.moored ? "true" : "false");
+    printf("\t--version == %s\n", args.version ? "true" : "false");
+    puts("Options");
+    printf("\t--speed == %s\n", args.speed);
+
+    return EXIT_SUCCESS;
 }
 ```
 
