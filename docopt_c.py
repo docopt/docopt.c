@@ -367,7 +367,7 @@ int parse_args(struct Tokens *ts, struct Elements *elements) {
 }
 
 int elems_to_args(struct Elements *elements, struct DocoptArgs *args,
-                     const bool help, const char *version) {
+                     const bool doHelpVersionPrint, const char *version) {
     struct Command *command;
     struct Argument *argument;
     struct Option *option;
@@ -380,11 +380,11 @@ int elems_to_args(struct Elements *elements, struct DocoptArgs *args,
     /* options */
     for (i = 0; i < elements->n_options; i++) {
         option = &elements->options[i];
-        if (help && option->value && strcmp(option->olong, "--help") == 0) {
+        if (doHelpVersionPrint && option->value && strcmp(option->olong, "--help") == 0) {
             for (j = 0; j < $help_message_n; j++)
                 puts(args->help_message[j]);
             return EXIT_FAILURE;
-        } else if (version && option->value &&
+        } else if ( doHelpVersionPrint && version && option->value &&
                    strcmp(option->olong, "--version") == 0) {
             puts(version);
             return EXIT_FAILURE;
