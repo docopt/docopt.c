@@ -307,17 +307,32 @@ int parse_shorts(struct Tokens *ts, struct Elements *elements) {
 int parse_argcmd(struct Tokens *ts, struct Elements *elements) {
     int i;
     int n_commands = elements->n_commands;
-    /* int n_arguments = elements->n_arguments; */
+    int n_arguments = elements->n_arguments;
     struct Command *command;
     struct Command *commands = elements->commands;
+    struct Argument *argument;
     /* Argument *arguments = elements->arguments; */
 
-    for (i = 0; i < n_commands; i++) {
-        command = &commands[i];
-        if (strcmp(command->name, ts->current) == 0) {
-            command->value = true;
-            tokens_move(ts);
-            return EXIT_SUCCESS;
+    if( ts->i > 0 ) // Don't consider the actual command
+    {
+        for (i = 0; i < n_commands; i++) {
+            command = &commands[i];
+            if (strcmp(command->name, ts->current) == 0) {
+                command->value = true;
+                tokens_move(ts);
+                return EXIT_SUCCESS;
+            }
+        }
+
+        for (i = 0; i < n_arguments; i++)
+        {
+            argument = &elements->arguments[i];
+            if( ts->current && !argument->value )
+            {
+                argument->value = ts->current;
+                tokens_move(ts);
+                return EXIT_SUCCESS;
+            }
         }
     }
     /* not implemented yet, just skip for now
