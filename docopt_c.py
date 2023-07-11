@@ -404,7 +404,7 @@ struct DocoptArgs ${primary_command}CommandLineParser( int argc, char *argv[], v
             else
                 printHelp( &args );
 
-            helpCallback( EXIT_FAILURE );
+            helpCallback( isError );
         }
     }
 
