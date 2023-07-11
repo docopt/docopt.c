@@ -6,21 +6,21 @@
  * Copyright (c) 2013 Vladimir Keleshev, vladimir@keleshev.com
 
 """
-
-from __future__ import print_function
-
-import re
 import sys
+import re
+
 
 __all__ = ['docopt']
 __version__ = '0.6.2'
 
 
 class DocoptLanguageError(Exception):
+
     """Error in construction of usage-message by developer."""
 
 
 class DocoptExit(SystemExit):
+
     """Exit in case user invoked program with incorrect arguments."""
 
     usage = ''
@@ -30,6 +30,7 @@ class DocoptExit(SystemExit):
 
 
 class Pattern(object):
+
     def __eq__(self, other):
         return repr(self) == repr(other)
 
@@ -96,14 +97,11 @@ def transform(pattern):
 
 
 class LeafPattern(Pattern):
+
     """Leaf/terminal node of a pattern tree."""
-    name = value = None
 
     def __init__(self, name, value=None):
-        if name is not None:
-            self.name = name
-        if value is not None:
-            self.value = value
+        self.name, self.value = name, value
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.value)
@@ -133,6 +131,7 @@ class LeafPattern(Pattern):
 
 
 class BranchPattern(Pattern):
+
     """Branch/inner node of a pattern tree."""
 
     def __init__(self, *children):
@@ -149,6 +148,7 @@ class BranchPattern(Pattern):
 
 
 class Argument(LeafPattern):
+
     def single_match(self, left):
         for n, pattern in enumerate(left):
             if type(pattern) is Argument:
@@ -156,15 +156,15 @@ class Argument(LeafPattern):
         return None, None
 
     @classmethod
-    def parse(cls, source):
+    def parse(class_, source):
         name = re.findall('(<\S*?>)', source)[0]
         value = re.findall('\[default: (.*)\]', source, flags=re.I)
-        return cls(name, value[0] if value else None)
+        return class_(name, value[0] if value else None)
 
 
 class Command(Argument):
+
     def __init__(self, name, value=False):
-        super(Command, self).__init__(name, value)
         self.name, self.value = name, value
 
     def single_match(self, left):
@@ -178,8 +178,8 @@ class Command(Argument):
 
 
 class Option(LeafPattern):
+
     def __init__(self, short=None, long=None, argcount=0, value=False):
-        super(Option, self).__init__(None, value)
         assert argcount in (0, 1)
         self.short, self.long, self.argcount = short, long, argcount
         self.value = None if value is False and argcount else value
@@ -275,13 +275,13 @@ class Either(BranchPattern):
             if matched:
                 outcomes.append(outcome)
         if outcomes:
-            return min(outcomes, key=lambda _outcome: len(_outcome[1]))
+            return min(outcomes, key=lambda outcome: len(outcome[1]))
         return False, left, collected
 
 
 class Tokens(list):
+
     def __init__(self, source, error=DocoptExit):
-        super(Tokens, self).__init__()
         self += source.split() if hasattr(source, 'split') else source
         self.error = error
 
@@ -404,6 +404,7 @@ def parse_atom(tokens, options):
              | long | shorts | argument | command ;
     """
     token = tokens.current()
+    result = []
     if token in '([':
         tokens.move()
         matching, pattern = {'(': [')', Required], '[': [']', Optional]}[token]
@@ -520,7 +521,7 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
 
     Example
     -------
-    >>> from docopt_c.docopt import docopt
+    >>> from docopt import docopt
     >>> doc = '''
     ... Usage:
     ...     my_program tcp <host> <port> [--timeout=<seconds>]
@@ -561,7 +562,7 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
     options = parse_defaults(doc)
     pattern = parse_pattern(formal_usage(DocoptExit.usage), options)
     # [default] syntax for argument is disabled
-    # for a in pattern.flat(Argument):
+    #for a in pattern.flat(Argument):
     #    same_name = [d for d in arguments if d.name == a.name]
     #    if same_name:
     #        a.value = same_name[0].value
@@ -570,7 +571,7 @@ def docopt(doc, argv=None, help=True, version=None, options_first=False):
     for options_shortcut in pattern.flat(OptionsShortcut):
         doc_options = parse_defaults(doc)
         options_shortcut.children = list(set(doc_options) - pattern_options)
-        # if any_options:
+        #if any_options:
         #    options_shortcut.children += [Option(o.short, o.long, o.argcount)
         #                    for o in argv if type(o) is Option]
     extras(help, version, argv, doc)
